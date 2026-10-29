@@ -286,10 +286,7 @@ async function handleMessage(
     return;
   }
 
-  if (lower.includes("دوسكة")) {
-    send(threadID, "كىىمك يا عبد 😤");
-    return;
-  }
+
 
   if (lower.startsWith("صوت")) {
     const voicePath = resolvePath("voice.mp3");
