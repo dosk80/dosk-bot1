@@ -1,0 +1,12 @@
+node_modules
+.git
+.github
+.editor-backups
+VeilBot-main
+attached_assets
+*.log
+*.tmp
+.DS_Store
+coverage
+dist
+

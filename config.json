@@ -1,0 +1,25 @@
+{
+  "botName": "DOSK",
+  "prefix": "/",
+  "ownerID": "61594321502697",
+  "adminBot": [
+    "61594321502697"
+  ],
+  "superAdminBot": [
+    "61594321502697"
+  ],
+  "dashboard": {
+    "password": "dosk",
+    "port": 5000
+  },
+  "adminOnly": {
+    "enable": false
+  },
+  "protection": {
+    "active": 1,
+    "antiName": true,
+    "antiNick": true,
+    "addLock": true,
+    "antiSpam": true
+  }
+}

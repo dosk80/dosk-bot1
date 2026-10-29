@@ -1,0 +1,21 @@
+{
+  "name": "dosk-bot",
+  "version": "2.0.0",
+  "description": "DOSK BOT — Facebook Messenger Bot & Control Panel",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "start": "node index.js",
+    "panel": "node Dosk.js",
+    "dev": "node Dosk.js"
+  },
+  "dependencies": {
+    "express": "^4.22.3",
+    "socket.io": "^4.8.4",
+    "ws3-fca": "^3.5.2"
+  },
+  "devDependencies": {
+    "prettier": "^3.8.3",
+    "typescript": "~5.9.3"
+  }
+}

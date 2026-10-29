@@ -1,0 +1,1752 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>𝐃𝐎𝐒𝐊 𝐁𝐎𝐓 — لوحة التحكم</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<meta name="theme-color" content="#121316">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="DOSK">
+<script src="/socket.io/socket.io.js"></script>
+<style>
+/* ══════════════════════════════════════════════════════════════
+   DOSK BOT — DARK & LIGHT SILVER DESIGN SYSTEM
+   ══════════════════════════════════════════════════════════════ */
+:root {
+  /* LIGHT SILVER PALETTE */
+  --bg: #e9ecf0;
+  --bg2: #dde1e7;
+  --bg3: #d1d6de;
+  --surface: rgba(30, 41, 59, 0.04);
+  --surface2: rgba(30, 41, 59, 0.075);
+  --surface3: rgba(30, 41, 59, 0.12);
+  --border: rgba(100, 116, 139, 0.28);
+  --border2: rgba(100, 116, 139, 0.15);
+  --text: #0f172a;
+  --t2: rgba(15, 23, 42, 0.65);
+  --t3: rgba(15, 23, 42, 0.40);
+  --accent: #334155;
+  --accent2: #475569;
+  --accent-lo: rgba(51, 65, 85, 0.10);
+  --accent-glow: rgba(51, 65, 85, 0.18);
+  --silver-bright: #ffffff;
+  --silver-mid: #cbd5e1;
+  --silver-dark: #64748b;
+  --green: #059669;
+  --green-lo: rgba(5, 150, 105, 0.12);
+  --red: #dc2626;
+  --red-lo: rgba(220, 38, 38, 0.12);
+  --yellow: #d97706;
+  --yellow-lo: rgba(217, 119, 6, 0.12);
+  --purple: #7c3aed;
+  --purple-lo: rgba(124, 58, 237, 0.12);
+  --cyan: #0284c7;
+  --cyan-lo: rgba(2, 132, 199, 0.12);
+  --orange: #ea580c;
+  --glass-1: var(--surface);
+  --glass-2: var(--surface2);
+  --glass-3: var(--surface3);
+  --blur: saturate(180%) blur(24px);
+  --r: 22px;
+  --r2: 15px;
+  --r3: 9px;
+  --spring: cubic-bezier(.34, 1.56, .64, 1);
+  --ease: cubic-bezier(.25, .46, .45, .94);
+  --nav-h: 70px;
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  /* DARK SILVER / TITANIUM PALETTE */
+  --bg: #111215;
+  --bg2: #17191f;
+  --bg3: #20232c;
+  --surface: rgba(200, 215, 235, 0.045);
+  --surface2: rgba(200, 215, 235, 0.08);
+  --surface3: rgba(200, 215, 235, 0.13);
+  --border: rgba(205, 220, 240, 0.14);
+  --border2: rgba(205, 220, 240, 0.07);
+  --text: #f1f3f7;
+  --t2: rgba(230, 235, 245, 0.62);
+  --t3: rgba(230, 235, 245, 0.38);
+  --accent: #d4dbe4;
+  --accent2: #9ba7b7;
+  --accent-lo: rgba(212, 219, 228, 0.12);
+  --accent-glow: rgba(212, 219, 228, 0.22);
+  --silver-bright: #f8fafc;
+  --silver-mid: #94a3b8;
+  --silver-dark: #334155;
+  --green: #10b981;
+  --green-lo: rgba(16, 185, 129, 0.14);
+  --red: #f43f5e;
+  --red-lo: rgba(244, 63, 94, 0.14);
+  --yellow: #f59e0b;
+  --yellow-lo: rgba(245, 158, 11, 0.14);
+  --purple: #a855f7;
+  --purple-lo: rgba(168, 85, 247, 0.14);
+  --cyan: #38bdf8;
+  --cyan-lo: rgba(56, 189, 248, 0.14);
+  --orange: #fb923c;
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; -webkit-text-size-adjust: 100%; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'SF Pro Display', system-ui, sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  padding-bottom: calc(var(--nav-h) + var(--safe-b) + 12px);
+  transition: background .35s var(--ease), color .35s var(--ease);
+}
+
+/* Background Silver Mesh & Orbs */
+.bg-canvas { position: fixed; inset: 0; z-index: -2; overflow: hidden; pointer-events: none; }
+.bg-orb {
+  position: absolute; border-radius: 50%; filter: blur(90px); opacity: 0.16;
+  animation: orbDrift 16s ease-in-out infinite;
+}
+.bg-orb-1 { width: 60vw; height: 60vw; background: radial-gradient(circle, var(--accent), transparent); top: -15%; right: -15%; }
+.bg-orb-2 { width: 50vw; height: 50vw; background: radial-gradient(circle, #64748b, transparent); bottom: -10%; left: -10%; animation-delay: -6s; }
+.bg-orb-3 { width: 35vw; height: 35vw; background: radial-gradient(circle, var(--silver-mid), transparent); top: 40%; left: 35%; animation-delay: -11s; }
+@keyframes orbDrift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(4%, 4%) scale(1.08); }
+}
+
+/* Header & Top Bar */
+.topbar {
+  position: sticky; top: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 20px;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur);
+  border-bottom: 1px solid var(--border);
+}
+.brand-area { display: flex; align-items: center; gap: 12px; }
+.brand-logo {
+  width: 38px; height: 38px; border-radius: 12px;
+  background: linear-gradient(135deg, var(--bg3), var(--bg2));
+  border: 1.5px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 14px var(--accent-glow);
+}
+.brand-title { font-size: 17px; font-weight: 800; letter-spacing: -0.3px; display: flex; align-items: center; gap: 6px; }
+.brand-badge {
+  font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 6px;
+  background: var(--surface2); border: 1px solid var(--border); color: var(--accent);
+}
+.top-actions { display: flex; align-items: center; gap: 8px; }
+.icon-btn {
+  width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--text); display: flex; align-items: center; justify-content: center;
+  font-size: 15px; cursor: pointer; transition: all .2s var(--spring);
+}
+.icon-btn:hover { background: var(--surface2); transform: translateY(-1px); }
+
+/* Navigation Tab Bar (Desktop & Mobile) */
+.tab-bar-wrap {
+  position: sticky; top: 63px; z-index: 95;
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 16px;
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur);
+  border-bottom: 1px solid var(--border2);
+}
+.tab-scroll-btn {
+  width: 28px; height: 36px; border-radius: 8px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--accent); cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: bold; flex-shrink: 0;
+}
+.tab-bar {
+  display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; flex: 1; padding: 2px 0;
+}
+.tab-bar::-webkit-scrollbar { display: none; }
+.tab {
+  padding: 8px 14px; border-radius: 12px; font-size: 13px; font-weight: 700;
+  border: 1px solid transparent; background: transparent; color: var(--t2);
+  white-space: nowrap; cursor: pointer; transition: all .2s var(--spring);
+  display: flex; align-items: center; gap: 6px; flex-shrink: 0;
+}
+.tab:hover { background: var(--surface); color: var(--text); }
+.tab.active {
+  background: var(--surface2); color: var(--text);
+  border-color: var(--border);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.08);
+}
+.tab-count {
+  font-size: 10px; padding: 1px 6px; border-radius: 10px;
+  background: var(--accent-lo); color: var(--accent);
+}
+
+/* Page Layout */
+.page-wrap { max-width: 1200px; margin: 0 auto; padding: 20px 16px; }
+.tab-pane { display: none; animation: paneIn .25s var(--ease); }
+.tab-pane.active { display: block; }
+@keyframes paneIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Cards & Surfaces */
+.card {
+  background: var(--glass-1);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 20px;
+  margin-bottom: 16px;
+  -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+  position: relative;
+  overflow: hidden;
+}
+.card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border2);
+}
+.card-title { font-size: 15px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+
+/* Bot Main Card */
+.bot-hero {
+  display: flex; align-items: center; gap: 20px;
+  background: linear-gradient(135deg, var(--surface2), var(--surface));
+  border: 1px solid var(--border); border-radius: var(--r); padding: 24px; margin-bottom: 20px;
+}
+.bot-avatar-wrap {
+  position: relative; width: 76px; height: 76px; border-radius: 22px; flex-shrink: 0;
+  border: 2px solid var(--border); overflow: hidden;
+  box-shadow: 0 8px 24px var(--accent-glow);
+}
+.bot-avatar-wrap img, .bot-avatar-wrap svg { width: 100%; height: 100%; object-fit: cover; }
+.bot-meta { flex: 1; min-width: 0; }
+.bot-name { font-size: 22px; font-weight: 900; margin-bottom: 4px; display: flex; align-items: center; gap: 10px; }
+.bot-sub { font-size: 12px; color: var(--t2); margin-bottom: 8px; font-family: monospace; }
+.badge-status {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 800;
+}
+.badge-status.online { background: var(--green-lo); color: var(--green); border: 1px solid var(--green); }
+.badge-status.offline { background: var(--red-lo); color: var(--red); border: 1px solid var(--red); }
+.status-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+
+/* Stats Grid */
+.stats-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px; margin-bottom: 20px;
+}
+.stat-box {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--r2);
+  padding: 16px; text-align: center; transition: all .2s;
+}
+.stat-box:hover { background: var(--surface2); transform: translateY(-2px); }
+.stat-val { font-size: 24px; font-weight: 900; color: var(--text); margin-bottom: 4px; font-family: monospace; }
+.stat-lbl { font-size: 11px; font-weight: 700; color: var(--t2); text-transform: uppercase; letter-spacing: .5px; }
+
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 10px 18px; border-radius: var(--r2); font-size: 13px; font-weight: 700;
+  border: 1px solid transparent; cursor: pointer; transition: all .2s var(--spring);
+  font-family: inherit; -webkit-tap-highlight-color: transparent;
+}
+.btn:active { transform: scale(0.97); }
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: var(--bg); box-shadow: 0 4px 14px var(--accent-glow);
+}
+.btn-ghost {
+  background: var(--surface); color: var(--text); border-color: var(--border);
+}
+.btn-ghost:hover { background: var(--surface2); }
+.btn-danger {
+  background: linear-gradient(135deg, var(--red), #991b1b);
+  color: #fff; box-shadow: 0 4px 14px var(--red-lo);
+}
+.btn-success {
+  background: linear-gradient(135deg, var(--green), #065f46);
+  color: #fff; box-shadow: 0 4px 14px var(--green-lo);
+}
+.btn-sm { padding: 6px 12px; font-size: 12px; border-radius: 10px; }
+.btn-group { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* Forms & Inputs */
+.fg { margin-bottom: 14px; }
+.fg label { display: block; font-size: 11px; font-weight: 800; color: var(--t2); margin-bottom: 6px; text-transform: uppercase; }
+input[type="text"], input[type="password"], input[type="number"], select, textarea {
+  width: 100%; background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r3); color: var(--text); font-size: 13px; padding: 10px 14px;
+  font-family: inherit; outline: none; transition: border-color .2s, background .2s;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--accent); background: var(--surface2);
+}
+textarea.code { font-family: 'SF Mono', Consolas, monospace; font-size: 12px; line-height: 1.6; }
+
+/* Messenger Web Client */
+.messenger-wrap {
+  display: flex; height: calc(100vh - 220px); min-height: 520px;
+  border-radius: var(--r); overflow: hidden; border: 1px solid var(--border);
+  background: var(--glass-1); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur);
+}
+.msg-sidebar {
+  width: 300px; flex-shrink: 0; border-left: 1px solid var(--border);
+  display: flex; flex-direction: column; background: var(--surface);
+}
+.msg-sidebar-header { padding: 12px; border-bottom: 1px solid var(--border2); }
+.msg-list { flex: 1; overflow-y: auto; }
+.thread-row {
+  display: flex; align-items: center; gap: 10px; padding: 10px 14px; cursor: pointer;
+  border-bottom: 1px solid var(--border2); transition: background .15s;
+}
+.thread-row:hover { background: var(--surface2); }
+.thread-row.active { background: var(--accent-lo); border-right: 3px solid var(--accent); }
+.thread-av {
+  width: 42px; height: 42px; border-radius: 50%; background: var(--surface3);
+  display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: bold; flex-shrink: 0;
+  overflow: hidden; border: 1px solid var(--border);
+}
+.thread-av img { width: 100%; height: 100%; object-fit: cover; }
+.thread-info { flex: 1; min-width: 0; }
+.thread-title { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.thread-preview { font-size: 11px; color: var(--t2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+
+.msg-main { flex: 1; display: flex; flex-direction: column; background: var(--glass-1); }
+.msg-header {
+  padding: 12px 18px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.msg-feed { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.chat-bubble {
+  max-width: 75%; padding: 10px 14px; border-radius: 16px; font-size: 13px; line-height: 1.45;
+  word-break: break-word; animation: bubbleIn .2s var(--ease);
+}
+@keyframes bubbleIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+.chat-bubble.bot {
+  align-self: flex-start; background: linear-gradient(135deg, var(--accent), var(--accent2)); color: var(--bg);
+  border-bottom-right-radius: 4px;
+}
+.chat-bubble.user {
+  align-self: flex-end; background: var(--surface2); color: var(--text); border: 1px solid var(--border);
+  border-bottom-left-radius: 4px;
+}
+.chat-bubble-meta { font-size: 10px; opacity: 0.65; margin-top: 4px; text-align: left; }
+.msg-input-bar {
+  padding: 12px 16px; border-top: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px; background: var(--surface);
+}
+
+/* Modals & Dialogs */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,0.6);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+  opacity: 0; pointer-events: none; transition: opacity .25s var(--ease);
+}
+.modal-overlay.open { opacity: 1; pointer-events: auto; }
+.modal-box {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r);
+  width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto; padding: 24px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.4); transform: scale(0.95); transition: transform .25s var(--spring);
+}
+.modal-overlay.open .modal-box { transform: scale(1); }
+
+/* Login Overlay */
+#login-screen {
+  position: fixed; inset: 0; z-index: 2000;
+  background: var(--bg); display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+#login-screen.hidden { display: none; }
+.login-card {
+  width: 100%; max-width: 380px; background: var(--glass-1);
+  border: 1px solid var(--border); border-radius: var(--r); padding: 32px 24px;
+  text-align: center; box-shadow: 0 12px 40px rgba(0,0,0,0.2);
+}
+
+/* Live Logs Viewer */
+.log-terminal {
+  background: #090a0c; border: 1px solid var(--border); border-radius: var(--r2);
+  padding: 14px; height: 420px; overflow-y: auto; font-family: 'SF Mono', Consolas, monospace;
+  font-size: 11.5px; line-height: 1.5; color: #94a3b8;
+}
+.log-line { margin-bottom: 4px; word-break: break-all; }
+.log-line.err { color: #f87171; }
+.log-line.warn { color: #fbbf24; }
+.log-line.ok { color: #34d399; }
+
+/* File Tree */
+.tree-node { padding: 4px 8px; cursor: pointer; border-radius: 6px; display: flex; align-items: center; gap: 6px; font-size: 12px; }
+.tree-node:hover { background: var(--surface2); }
+.tree-node.active { background: var(--accent-lo); color: var(--accent); }
+
+/* Toast Notifications */
+#toast-container { position: fixed; bottom: 20px; left: 20px; z-index: 3000; display: flex; flex-direction: column; gap: 8px; }
+.toast {
+  padding: 10px 18px; border-radius: 12px; font-size: 13px; font-weight: 700;
+  background: var(--bg2); border: 1px solid var(--border); color: var(--text);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.25); animation: toastIn .2s var(--spring);
+}
+@keyframes toastIn { from { transform: translateY(12px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+/* Mobile Bottom Navigation */
+.bottom-nav {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 90;
+  height: calc(var(--nav-h) + var(--safe-b)); padding-bottom: var(--safe-b);
+  background: color-mix(in srgb, var(--bg) 94%, transparent);
+  -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur);
+  border-top: 1px solid var(--border); display: none; justify-content: space-around; align-items: center;
+}
+.bn-item {
+  background: none; border: none; color: var(--t2); font-size: 11px; font-weight: 700;
+  display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer;
+}
+.bn-item.active { color: var(--accent); }
+
+@media (max-width: 768px) {
+  .bottom-nav { display: flex; }
+  .messenger-wrap { flex-direction: column; height: calc(100vh - 200px); }
+  .msg-sidebar { width: 100%; height: 200px; border-left: none; border-bottom: 1px solid var(--border); }
+}
+</style>
+</head>
+<body data-tab="control">
+
+<!-- Silver Orbs Canvas -->
+<div class="bg-canvas">
+  <div class="bg-orb bg-orb-1"></div>
+  <div class="bg-orb bg-orb-2"></div>
+  <div class="bg-orb bg-orb-3"></div>
+</div>
+
+<!-- Login Screen -->
+<div id="login-screen">
+  <div class="login-card">
+    <div style="width:64px;height:64px;margin:0 auto 16px;">
+      <img src="/dosk-logo.svg" alt="DOSK Logo" style="width:100%;height:100%;">
+    </div>
+    <h2 style="font-size:20px;font-weight:900;margin-bottom:6px;">𝐃𝐎𝐒𝐊 𝐁𝐎𝐓</h2>
+    <p style="font-size:12px;color:var(--t2);margin-bottom:24px;">لوحة التحكم والإدارة — الإصدار الفضي</p>
+    <div class="fg">
+      <input type="password" id="login-password" placeholder="كلمة المرور..." style="text-align:center;">
+    </div>
+    <button class="btn btn-primary" style="width:100%;margin-top:8px;" onclick="doLogin()">تسجيل الدخول</button>
+    <div id="login-err" style="color:var(--red);font-size:12px;margin-top:12px;"></div>
+  </div>
+</div>
+
+<!-- Header / Topbar -->
+<header class="topbar">
+  <div class="brand-area">
+    <div class="brand-logo">
+      <img src="/favicon.svg" alt="D" style="width:24px;height:24px;">
+    </div>
+    <div>
+      <div class="brand-title">
+        <span>𝐃𝐎𝐒𝐊 𝐁𝐎𝐓</span>
+        <span class="brand-badge">SILVER</span>
+      </div>
+      <div style="font-size:10px;color:var(--t2);">Hunters ⚜️ • We hunt blood 🩸</div>
+    </div>
+  </div>
+  <div class="top-actions">
+    <button class="icon-btn" onclick="toggleTheme()" id="themeBtn" title="تبديل المظهر">🌙</button>
+    <button class="icon-btn" onclick="doLogout()" title="تسجيل الخروج">🚪</button>
+  </div>
+</header>
+
+<!-- Tabs Navigation Bar -->
+<div class="tab-bar-wrap">
+  <button class="tab-scroll-btn" onclick="scrollTabs(-1)">‹</button>
+  <div class="tab-bar" id="tabBar">
+    <button class="tab active" data-tab="control">⚡ الرئيسية</button>
+    <button class="tab" data-tab="ctrlpanel">🎛️ التحكم والطلبات</button>
+    <button class="tab" data-tab="messenger">💬 مسنجر مباشر</button>
+    <button class="tab" data-tab="cookies">🍪 الكوكيز</button>
+    <button class="tab" data-tab="commands">📜 الأوامر</button>
+    <button class="tab" data-tab="activation">⚙️ تفعيل الأوامر</button>
+    <button class="tab" data-tab="editor">📝 محرر الأوامر</button>
+    <button class="tab" data-tab="protection">🛡️ درع الحماية</button>
+    <button class="tab" data-tab="settings">🔧 الإعدادات</button>
+    <button class="tab" data-tab="messages">📬 سجل الرسائل</button>
+    <button class="tab" data-tab="logs">💻 سجلات الخادم</button>
+    <button class="tab" data-tab="ai">✨ استوديو AI</button>
+    <button class="tab" data-tab="files">📂 الملفات</button>
+    <button class="tab" data-tab="railway">🚀 الرفع والاستضافة</button>
+    <button class="tab" data-tab="addlock">🔒 AddLock</button>
+  </div>
+  <button class="tab-scroll-btn" onclick="scrollTabs(1)">›</button>
+</div>
+
+<!-- Main Content Area -->
+<main class="page-wrap">
+
+  <!-- TAB: CONTROL (الرئيسية) -->
+  <section class="tab-pane active" id="pane-control">
+    <div class="bot-hero">
+      <div class="bot-avatar-wrap">
+        <img src="/dosk-logo.svg" alt="DOSK">
+      </div>
+      <div class="bot-meta">
+        <div class="bot-name">
+          <span>𝐃𝐎𝐒𝐊 𝐁𝐎𝐓</span>
+          <span class="badge-status online" id="botStatusBadge">
+            <span class="status-dot"></span> <span id="botStatusText">متصل</span>
+          </span>
+        </div>
+        <div class="bot-sub">UID: <span id="botUID">جاري التحميل...</span> • البادئة: <span id="botPrefix">/</span></div>
+        <div class="btn-group">
+          <button class="btn btn-sm btn-ghost" onclick="sendPing()">📡 فحص البينج: <span id="pingMs">--</span>ms</button>
+          <button class="btn btn-sm btn-ghost" onclick="toggleBotLock()" id="btnBotLock">🔒 قفل البوت: معطل</button>
+          <button class="btn btn-sm btn-ghost" onclick="toggleSilentMode()" id="btnSilentMode">🔇 الوضع الصامت: معطل</button>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <button class="btn btn-primary btn-sm" onclick="controlBot('restart')">🔄 إعادة تشغيل</button>
+        <button class="btn btn-danger btn-sm" onclick="controlBot('stop')">⛔ إيقاف البوت</button>
+      </div>
+    </div>
+
+    <!-- Stats Counters -->
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="stat-val" id="statUptime">00:00:00</div>
+        <div class="stat-lbl">مدة التشغيل</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" id="statMsgs">0</div>
+        <div class="stat-lbl">الرسائل المعالجة</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" id="statCmds">0</div>
+        <div class="stat-lbl">الأوامر المنفذة</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" id="statThreads">0</div>
+        <div class="stat-lbl">المجموعات النشطة</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" id="statMemory">0 MB</div>
+        <div class="stat-lbl">استهلاك الذاكرة</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB: CTRLPANEL (التحكم والطلبات) -->
+  <section class="tab-pane" id="pane-ctrlpanel">
+    <!-- Message Requests Card -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">📬 طلبات الرسائل المعلقة (Messenger Requests)</div>
+        <div class="btn-group">
+          <button class="btn btn-sm btn-success" onclick="acceptAllRequests()">✅ قبول الكل</button>
+          <button class="btn btn-sm btn-danger" onclick="declineAllRequests()">❌ رفض الكل</button>
+          <button class="btn btn-sm btn-ghost" onclick="loadRequests()">🔄 تحديث</button>
+        </div>
+      </div>
+      <div id="requestsList" style="display:flex;flex-direction:column;gap:8px;">
+        <div style="text-align:center;color:var(--t2);padding:20px;">جاري فحص طلبات الرسائل...</div>
+      </div>
+    </div>
+
+    <!-- Groups Management Card -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">👥 إدارة المجموعات وأقفال الأسماء والكنى</div>
+        <button class="btn btn-sm btn-ghost" onclick="loadGroups()">🔄 تحديث القائمة</button>
+      </div>
+      <div id="groupsList" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(320px, 1fr));gap:14px;">
+        <div style="text-align:center;color:var(--t2);padding:20px;">جاري تحميل المجموعات...</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB: MESSENGER (مسنجر مباشر) -->
+  <section class="tab-pane" id="pane-messenger">
+    <div class="messenger-wrap">
+      <!-- Sidebar -->
+      <div class="msg-sidebar">
+        <div class="msg-sidebar-header">
+          <input type="text" id="msgSearch" placeholder="🔍 بحث في المحادثات..." oninput="filterThreads()">
+        </div>
+        <div class="msg-list" id="threadList">
+          <div style="text-align:center;color:var(--t2);padding:20px;">تحميل المحادثات...</div>
+        </div>
+      </div>
+
+      <!-- Main Chat -->
+      <div class="msg-main">
+        <div class="msg-header">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div class="thread-av" id="activeThreadAv">💬</div>
+            <div>
+              <div style="font-weight:800;font-size:14px;" id="activeThreadTitle">اختر محادثة</div>
+              <div style="font-size:11px;color:var(--t2);" id="activeThreadSubtitle">--</div>
+            </div>
+          </div>
+          <div class="btn-group" id="threadActionBtns" style="display:none;">
+            <button class="btn btn-sm btn-ghost" onclick="openThreadInfoModal()">ℹ️ التفاصيل</button>
+            <button class="btn btn-sm btn-ghost" onclick="openChangeTitleModal()">✏️ تغيير الاسم</button>
+            <button class="btn btn-sm btn-ghost" onclick="openChangeNickModal()">🏷️ الكنية</button>
+            <button class="btn btn-sm btn-ghost" onclick="openChangeBotNickAllModal()">🤖 كنية البوت بالكل</button>
+            <button class="btn btn-sm btn-ghost" onclick="openAddMemberModal()">➕ إضافة عضو</button>
+          </div>
+        </div>
+
+        <div class="msg-feed" id="chatFeed">
+          <div style="text-align:center;color:var(--t2);margin:auto;">اختر محادثة من القائمة لعرض الرسائل</div>
+        </div>
+
+        <div class="msg-input-bar">
+          <label class="btn btn-ghost btn-sm" style="cursor:pointer;" title="إرسال ملف/صورة">
+            📎 <input type="file" id="msgFileInput" style="display:none;" onchange="handleFileSelect(this)">
+          </label>
+          <input type="text" id="msgText" placeholder="اكتب رسالة هنا..." onkeydown="if(event.key==='Enter') sendChatMessage()">
+          <button class="btn btn-primary btn-sm" onclick="sendChatMessage()">إرسال 🚀</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB: COOKIES (الكوكيز) -->
+  <section class="tab-pane" id="pane-cookies">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">🍪 إدارة كوكيز فيسبوك (Facebook AppState)</div>
+        <button class="btn btn-sm btn-primary" onclick="saveCookies()">💾 حفظ وتحديث فوري</button>
+      </div>
+      <p style="font-size:13px;color:var(--t2);margin-bottom:14px;">
+        الصق كوكيز فيسبوك بصيغة JSON Array أو Header String. سيتم فحص <code>c_user</code> و <code>xs</code> وإعادة الاتصال فوراً بدون إعادة تشغيل الخادم.
+      </p>
+      <div class="fg">
+        <textarea id="cookiesInput" rows="12" class="code" placeholder='[{"key":"c_user","value":"..."},{"key":"xs","value":"..."}]'></textarea>
+      </div>
+      <div id="cookiesStatus" style="font-size:12px;font-weight:700;color:var(--green);"></div>
+    </div>
+  </section>
+
+  <!-- TAB: COMMANDS (الأوامر) -->
+  <section class="tab-pane" id="pane-commands">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">📜 سجل أوامر DOSK (<span id="commandsCount">0</span>)</div>
+        <div class="btn-group">
+          <input type="text" id="cmdSearch" placeholder="🔍 بحث في الأوامر..." style="width:200px;" oninput="filterCommands()">
+          <button class="btn btn-sm btn-primary" onclick="openNewCommandModal()">➕ أمر جديد</button>
+        </div>
+      </div>
+      <div id="commandsGrid" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));gap:12px;"></div>
+    </div>
+  </section>
+
+  <!-- TAB: ACTIVATION (تفعيل الأوامر) -->
+  <section class="tab-pane" id="pane-activation">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">⚙️ تفعيل وتعطيل الأوامر للمجموعات (Activation)</div>
+        <button class="btn btn-sm btn-primary" onclick="saveThreadCommands()">💾 حفظ الإعدادات</button>
+      </div>
+      <div class="fg">
+        <label>اختر المجموعة</label>
+        <select id="activationThreadSelect" onchange="loadThreadCommandConfig()"></select>
+      </div>
+      <div class="fg">
+        <label>وضع التحكم</label>
+        <select id="activationMode">
+          <option value="blacklist">قائمة سوداء (تعطيل الأوامر المحددة فقط)</option>
+          <option value="whitelist">قائمة بيضاء (تفعيل الأوامر المحددة فقط)</option>
+        </select>
+      </div>
+      <div id="activationCommandsList" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(180px, 1fr));gap:8px;margin-top:14px;"></div>
+    </div>
+  </section>
+
+  <!-- TAB: EDITOR (محرر الأوامر) -->
+  <section class="tab-pane" id="pane-editor">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">📝 محرر الأوامر الحي مع التراجع الآمن (Hot-Reload)</div>
+        <div class="btn-group">
+          <select id="editorCmdSelect" onchange="loadCommandSource()" style="width:180px;"></select>
+          <button class="btn btn-sm btn-primary" onclick="saveCommandSource()">💾 حفظ وتطبيق فوراً</button>
+        </div>
+      </div>
+      <div class="fg">
+        <textarea id="commandCodeEditor" rows="20" class="code" placeholder="// كود الأمر هنا..."></textarea>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB: PROTECTION (درع الحماية) -->
+  <section class="tab-pane" id="pane-protection">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">🛡️ إعدادات درع الحماية والأمان (Protection Center)</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));gap:14px;">
+        <div class="card" style="margin:0;">
+          <h4 style="margin-bottom:8px;">🔒 قفل اسم المجموعات (Anti-Name)</h4>
+          <p style="font-size:12px;color:var(--t2);margin-bottom:12px;">منع تغيير اسم الغروب واستعادته فورياً عند العبث به.</p>
+          <span class="badge-status online">درع نشط</span>
+        </div>
+        <div class="card" style="margin:0;">
+          <h4 style="margin-bottom:8px;">🏷️ قفل الكنى (Anti-Nick)</h4>
+          <p style="font-size:12px;color:var(--t2);margin-bottom:12px;">منع تغيير كنية البوت والأعضاء المحددين وإعادتها فوراً.</p>
+          <span class="badge-status online">درع نشط</span>
+        </div>
+        <div class="card" style="margin:0;">
+          <h4 style="margin-bottom:8px;">👥 حماية الإضافة (AddLock)</h4>
+          <p style="font-size:12px;color:var(--t2);margin-bottom:12px;">طرد أي عضو تتم إضافته إلا من الحسابات المصرح بها.</p>
+          <span class="badge-status online">درع نشط</span>
+        </div>
+        <div class="card" style="margin:0;">
+          <h4 style="margin-bottom:8px;">🚫 منع التكرار (LOP Protection)</h4>
+          <p style="font-size:12px;color:var(--t2);margin-bottom:12px;">منع البوتات المعادية من إغراق الغروب بالخروج والدخول.</p>
+          <span class="badge-status online">درع نشط</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB: SETTINGS (الإعدادات) -->
+  <section class="tab-pane" id="pane-settings">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">🔧 إعدادات البوت والمسؤولين</div>
+        <button class="btn btn-sm btn-primary" onclick="saveBotSettings()">💾 حفظ التغييرات</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div class="fg">
+          <label>اسم البوت</label>
+          <input type="text" id="cfgBotName" value="DOSK">
+        </div>
+        <div class="fg">
+          <label>بادئة الأوامر (Prefix)</label>
+          <input type="text" id="cfgPrefix" value="/">
+        </div>
+      </div>
+      <div class="fg">
+        <label>معرّف المالك الرئيسي (Owner UID)</label>
+        <input type="text" id="cfgOwnerID" value="61594321502697">
+      </div>
+      <div class="fg">
+        <label>معرفات المشرفين (Admin UIDs — مفصولة بفاصلة)</label>
+        <input type="text" id="cfgAdmins" value="61594321502697">
+      </div>
+    </div>
+
+    <!-- AI Providers Configuration -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">🤖 مزودات الذكاء الاصطناعي (AI Providers)</div>
+        <button class="btn btn-sm btn-primary" onclick="saveAIEnvKeys()">💾 حفظ المفاتيح</button>
+      </div>
+      <div class="fg">
+        <label>مفتاح Anthropic Claude API Key</label>
+        <input type="password" id="envAnthropicKey" placeholder="sk-ant-...">
+      </div>
+      <div class="fg">
+        <label>مفتاح OpenAI API Key</label>
+        <input type="password" id="envOpenAIKey" placeholder="sk-...">
+      </div>
+      <div class="fg">
+        <label>مفتاح Groq API Key</label>
+        <input type="password" id="envGroqKey" placeholder="gsk_...">
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB: MESSAGES (سجل الرسائل) -->
+  <section class="tab-pane" id="pane-messages">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">📬 سجل الرسائل الواردة والصادرة الحية</div>
+        <button class="btn btn-sm btn-ghost" onclick="loadMessagesFeed()">🔄 تحديث</button>
+      </div>
+      <div id="messagesLogTable" style="display:flex;flex-direction:column;gap:8px;"></div>
+    </div>
+  </section>
+
+  <!-- TAB: LOGS (سجلات الخادم) -->
+  <section class="tab-pane" id="pane-logs">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">💻 سجلات الطرفية الحية (Live Console Stream)</div>
+        <div class="btn-group">
+          <input type="text" id="logFilter" placeholder="تصفية السجلات..." style="width:160px;" oninput="renderLogs()">
+          <button class="btn btn-sm btn-ghost" onclick="clearLogs()">🗑️ مسح</button>
+          <button class="btn btn-sm btn-ghost" onclick="toggleAutoScroll()" id="autoScrollBtn">⬇️ التمرير التلقائي: نعم</button>
+        </div>
+      </div>
+      <div class="log-terminal" id="terminalLog"></div>
+    </div>
+  </section>
+
+  <!-- TAB: AI STUDIO (استوديو AI) -->
+  <section class="tab-pane" id="pane-ai">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">✨ استوديو توليد الأوامر بالذكاء الاصطناعي</div>
+        <span class="badge-status online" id="aiActiveProvider">مزود AI: تلقائي</span>
+      </div>
+      <div class="fg">
+        <label>وصف الأمر المطلوب باللغة العربية أو الإنجليزية</label>
+        <textarea id="aiPromptDesc" rows="4" placeholder="مثال: اصنع أمراً يقوم بإرسال آية قرآنية عشوائية بصوت القارئ مع وقت انتظار 5 ثوانٍ..."></textarea>
+      </div>
+      <button class="btn btn-primary" onclick="generateCommandAI()">⚡ توليد كود الأمر الآن</button>
+
+      <div id="aiGeneratedSection" style="display:none;margin-top:20px;">
+        <div class="card-header" style="padding-top:10px;">
+          <div class="card-title">الكود المولد</div>
+          <div class="btn-group">
+            <input type="text" id="aiSaveCmdName" placeholder="اسم الأمر (مثل: quran)" style="width:160px;">
+            <button class="btn btn-sm btn-success" onclick="saveAIGeneratedCommand()">💾 حفظ في أوامر البوت</button>
+          </div>
+        </div>
+        <textarea id="aiGeneratedCode" rows="14" class="code"></textarea>
+      </div>
+    </div>
+
+    <!-- AI Chat Assistant -->
+    <div class="card">
+      <div class="card-title" style="margin-bottom:12px;">💬 مساعد الذكاء الاصطناعي الخاص بـ DOSK</div>
+      <div id="aiChatFeed" style="max-height:300px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:12px;"></div>
+      <div style="display:flex;gap:8px;">
+        <input type="text" id="aiChatInput" placeholder="اسأل عن أي خطأ أو كود أو ميزة..." onkeydown="if(event.key==='Enter') sendAIChat()">
+        <button class="btn btn-primary btn-sm" onclick="sendAIChat()">إرسال</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB: FILES (الملفات) -->
+  <section class="tab-pane" id="pane-files">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">📂 متصفح ملفات المشروع</div>
+        <div class="btn-group">
+          <button class="btn btn-sm btn-ghost" onclick="loadFilesTree()">🔄 تحديث</button>
+          <button class="btn btn-sm btn-primary" onclick="saveActiveFile()">💾 حفظ الملف المفتوح</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:16px;min-height:480px;">
+        <div style="width:240px;border-left:1px solid var(--border);overflow-y:auto;padding-left:10px;" id="fileTreeContainer">
+          جاري قراءة الشجرة...
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;">
+          <div style="font-size:12px;font-weight:bold;margin-bottom:8px;" id="activeFilePath">لم يتم تحديد ملف</div>
+          <textarea id="fileEditorArea" style="flex:1;min-height:420px;" class="code"></textarea>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB: RAILWAY & GITHUB DEPLOYMENT (NO APK) -->
+  <section class="tab-pane" id="pane-railway">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">🚀 رفع الكود إلى GitHub (Bot Source Sync)</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="fg">
+          <label>مستودع GitHub (username/repo)</label>
+          <input type="text" id="ghRepo" placeholder="username/dosk-bot">
+        </div>
+        <div class="fg">
+          <label>توكن GitHub (Personal Access Token)</label>
+          <input type="password" id="ghToken" placeholder="ghp_...">
+        </div>
+      </div>
+      <div class="fg">
+        <label>رسالة التحديث (Commit Message)</label>
+        <input type="text" id="ghCommitMsg" value="🤖 DOSK BOT — Auto Update">
+      </div>
+      <button class="btn btn-primary" onclick="pushToGitHub()">📤 رفع كود البوت الآن إلى GitHub</button>
+      <div class="log-terminal" id="deployLog" style="height:140px;margin-top:12px;"></div>
+    </div>
+
+    <!-- Railway Deploy Card -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">🚂 إدارة استضافة Railway</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="fg">
+          <label>Railway API Token</label>
+          <input type="password" id="railwayToken" placeholder="rlwy_...">
+        </div>
+        <div class="fg">
+          <label>Railway Project ID</label>
+          <input type="text" id="railwayProjectId">
+        </div>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-sm btn-ghost" onclick="checkRailwayStatus()">🔎 فحص الحالة</button>
+        <button class="btn btn-sm btn-success" onclick="triggerRailwayDeploy()">⚡ إطلاق Deploy فوري</button>
+      </div>
+      <div id="railwayStatusResult" style="font-size:12px;margin-top:10px;"></div>
+    </div>
+  </section>
+
+  <!-- TAB: ADDLOCK (حماية الإضافة) -->
+  <section class="tab-pane" id="pane-addlock">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">🔒 درع AddLock لمنع إضافة الأعضاء</div>
+        <button class="btn btn-sm btn-ghost" onclick="loadAddLockData()">🔄 تحديث</button>
+      </div>
+      <p style="font-size:13px;color:var(--t2);margin-bottom:14px;">
+        يمكنك تفعيل AddLock لأي مجموعة وتحديد الحسابات المسموح لها بالإضافة. أي شخص آخر يضيف عضواً سيتم طرد العضو المضاف فوراً.
+      </p>
+      <div id="addLockGroupsContainer" style="display:flex;flex-direction:column;gap:12px;"></div>
+    </div>
+  </section>
+
+</main>
+
+<!-- Mobile Bottom Navigation -->
+<nav class="bottom-nav">
+  <button class="bn-item active" onclick="switchTab('control')"><span>⚡</span><span>الرئيسية</span></button>
+  <button class="bn-item" onclick="switchTab('ctrlpanel')"><span>🎛️</span><span>التحكم</span></button>
+  <button class="bn-item" onclick="switchTab('messenger')"><span>💬</span><span>مسنجر</span></button>
+  <button class="bn-item" onclick="switchTab('commands')"><span>📜</span><span>الأوامر</span></button>
+  <button class="bn-item" onclick="switchTab('settings')"><span>🔧</span><span>الإعدادات</span></button>
+</nav>
+
+<!-- Modals Container -->
+<div class="modal-overlay" id="genericModal">
+  <div class="modal-box" id="genericModalContent"></div>
+</div>
+
+<div id="toast-container"></div>
+
+<!-- Client App Script -->
+<script>
+/* ══════════════════════════════════════════════════════════════
+   DOSK BOT CLIENT LOGIC
+   ══════════════════════════════════════════════════════════════ */
+let _token = localStorage.getItem("dosk_token") || "";
+let _socket = null;
+let _autoScroll = true;
+let _logLines = [];
+let _allThreads = [];
+let _activeTid = null;
+let _allCommands = [];
+let _aiChatHistory = [];
+
+// Theme Controller
+function applyTheme(th) {
+  const next = th === "light" ? "light" : "dark";
+  document.documentElement.setAttribute("data-theme", next);
+  try { localStorage.setItem("dosk_theme", next); } catch (_) {}
+  const btn = document.getElementById("themeBtn");
+  if (btn) btn.textContent = next === "dark" ? "☀️" : "🌙";
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute("content", next === "dark" ? "#121316" : "#e9ecf0");
+}
+function toggleTheme() {
+  applyTheme(document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark");
+}
+applyTheme(localStorage.getItem("dosk_theme") || "dark");
+
+// Toast Notification
+function toast(msg, type = "info") {
+  const c = document.getElementById("toast-container");
+  const el = document.createElement("div");
+  el.className = "toast";
+  el.textContent = msg;
+  c.appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+// API Fetch Helper
+async function api(path, opts = {}) {
+  const headers = opts.headers || {};
+  if (_token) headers["x-dosk-token"] = _token;
+  if (!(opts.body instanceof FormData) && opts.body && typeof opts.body === "object") {
+    headers["Content-Type"] = "application/json";
+    opts.body = JSON.stringify(opts.body);
+  }
+  opts.headers = headers;
+  try {
+    const res = await fetch(path, opts);
+    if (res.status === 401) {
+      _token = "";
+      localStorage.removeItem("dosk_token");
+      document.getElementById("login-screen").classList.remove("hidden");
+      throw new Error("Unauthorized");
+    }
+    return await res.json();
+  } catch (err) {
+    console.error("API error", err);
+    throw err;
+  }
+}
+
+// Login & Auth
+async function doLogin() {
+  const pwd = document.getElementById("login-password").value.trim();
+  const errEl = document.getElementById("login-err");
+  errEl.textContent = "";
+  try {
+    const res = await api("/api/login", { method: "POST", body: { password: pwd } });
+    if (res.ok) {
+      _token = res.token;
+      localStorage.setItem("dosk_token", _token);
+      document.getElementById("login-screen").classList.add("hidden");
+      initApp();
+    } else {
+      errEl.textContent = res.error || "كلمة المرور غير صحيحة";
+    }
+  } catch (e) {
+    errEl.textContent = "فشل الاتصال بالخادم";
+  }
+}
+
+function doLogout() {
+  api("/api/logout", { method: "POST" }).catch(() => {});
+  _token = "";
+  localStorage.removeItem("dosk_token");
+  document.getElementById("login-screen").classList.remove("hidden");
+}
+
+// Tab Switching
+function switchTab(name) {
+  document.querySelectorAll(".tab").forEach(t => {
+    t.classList.toggle("active", t.dataset.tab === name);
+  });
+  document.querySelectorAll(".tab-pane").forEach(p => {
+    p.classList.toggle("active", p.id === `pane-${name}`);
+  });
+  document.body.setAttribute("data-tab", name);
+  document.querySelectorAll(".bn-item").forEach(b => {
+    b.classList.toggle("active", b.getAttribute("onclick")?.includes(name));
+  });
+
+  if (name === "messenger") loadMessengerThreads();
+  if (name === "ctrlpanel") { loadRequests(); loadGroups(); }
+  if (name === "commands") loadCommands();
+  if (name === "activation") loadActivationView();
+  if (name === "editor") loadEditorCommands();
+  if (name === "cookies") loadCookiesView();
+  if (name === "messages") loadMessagesFeed();
+  if (name === "files") loadFilesTree();
+  if (name === "addlock") loadAddLockData();
+  if (name === "settings") loadBotSettings();
+}
+
+function scrollTabs(dir) {
+  const bar = document.getElementById("tabBar");
+  bar.scrollBy({ left: dir * 180, behavior: "smooth" });
+}
+
+// Navigation Click Handlers
+document.querySelectorAll(".tab").forEach(t => {
+  t.addEventListener("click", () => switchTab(t.dataset.tab));
+});
+
+// App Initialization
+async function initApp() {
+  const auth = await api("/api/auth-check").catch(() => ({ ok: false }));
+  if (!auth.ok) {
+    document.getElementById("login-screen").classList.remove("hidden");
+    return;
+  }
+  document.getElementById("login-screen").classList.add("hidden");
+  initSocket();
+  refreshStats();
+  setInterval(refreshStats, 6000);
+}
+
+// Socket.IO
+function initSocket() {
+  if (typeof io !== "function") return;
+  _socket = io({ query: { token: _token } });
+  _socket.on("stats-update", updateStatsUI);
+  _socket.on("log-line", l => {
+    _logLines.push(l);
+    if (_logLines.length > 300) _logLines.shift();
+    renderLogs();
+  });
+  _socket.on("log-history", lines => {
+    _logLines = lines || [];
+    renderLogs();
+  });
+  _socket.on("messenger-msg", msg => {
+    if (_activeTid && String(msg.tid) === String(_activeTid)) {
+      appendChatMessage(msg);
+    }
+    updateThreadPreview(msg.tid, msg.body);
+  });
+}
+
+// Stats & Overview
+async function refreshStats() {
+  try {
+    const s = await api("/api/stats");
+    updateStatsUI(s);
+  } catch (_) {}
+}
+
+function updateStatsUI(s) {
+  if (!s) return;
+  const h = Math.floor(s.uptime / 3600000);
+  const m = Math.floor((s.uptime % 3600000) / 60000);
+  const sec = Math.floor((s.uptime % 60000) / 1000);
+  document.getElementById("statUptime").textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+  document.getElementById("statMsgs").textContent = s.totalMessages || 0;
+  document.getElementById("statCmds").textContent = s.totalCommands || 0;
+  document.getElementById("statThreads").textContent = s.activeThreads || 0;
+  document.getElementById("statMemory").textContent = `${s.memMB || 0} MB`;
+  document.getElementById("botUID").textContent = s.botID || "غير متصل";
+  document.getElementById("botPrefix").textContent = s.prefix || "/";
+  const stText = document.getElementById("botStatusText");
+  const stBadge = document.getElementById("botStatusBadge");
+  if (s.online) {
+    stText.textContent = "متصل";
+    stBadge.className = "badge-status online";
+  } else {
+    stText.textContent = "غير متصل";
+    stBadge.className = "badge-status offline";
+  }
+}
+
+async function sendPing() {
+  const t0 = Date.now();
+  await api("/ping");
+  const ms = Date.now() - t0;
+  document.getElementById("pingMs").textContent = ms;
+  toast(`📡 استجابة البينج: ${ms}ms`, "ok");
+}
+
+async function controlBot(action) {
+  if (!confirm(`هل أنت متأكد من تنفيذ: ${action}؟`)) return;
+  await api("/api/control", { method: "POST", body: { action } });
+  toast("تم إرسال الأمر بنجاح");
+}
+
+async function toggleBotLock() {
+  const r = await api("/api/bot-lock", { method: "POST" });
+  document.getElementById("btnBotLock").textContent = `🔒 قفل البوت: ${r.locked ? "مفعل" : "معطل"}`;
+  toast(`تم ${r.locked ? "تفعيل" : "تعطيل"} قفل البوت`);
+}
+
+async function toggleSilentMode() {
+  const r = await api("/api/silent-mode", { method: "POST" });
+  document.getElementById("btnSilentMode").textContent = `🔇 الوضع الصامت: ${r.silent ? "مفعل" : "معطل"}`;
+  toast(`تم ${r.silent ? "تفعيل" : "تعطيل"} الوضع الصامت`);
+}
+
+// Control Panel & Message Requests
+async function loadRequests() {
+  const c = document.getElementById("requestsList");
+  c.innerHTML = `<div style="text-align:center;padding:16px;">جاري فحص الطلبات...</div>`;
+  const res = await api("/api/ctrlpanel/message-requests");
+  if (!res.requests || !res.requests.length) {
+    c.innerHTML = `<div style="text-align:center;color:var(--t2);padding:16px;">لا توجد طلبات رسائل معلقة حالياً ✓</div>`;
+    return;
+  }
+  c.innerHTML = res.requests.map(r => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface);border-radius:var(--r2);border:1px solid var(--border);">
+      <div>
+        <div style="font-weight:700;font-size:13px;">${r.name}</div>
+        <div style="font-size:11px;color:var(--t2);">${r.snippet || "لا توجد رسالة نصية"}</div>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-sm btn-success" onclick="acceptReq('${r.tid}')">قبول</button>
+        <button class="btn btn-sm btn-danger" onclick="declineReq('${r.tid}')">رفض</button>
+      </div>
+    </div>
+  `).join("");
+}
+
+async function acceptReq(tid) {
+  await api("/api/ctrlpanel/message-requests/accept", { method: "POST", body: { tid } });
+  toast("تم قبول الطلب");
+  loadRequests();
+}
+
+async function declineReq(tid) {
+  await api("/api/ctrlpanel/message-requests/decline", { method: "POST", body: { tid } });
+  toast("تم رفض الطلب");
+  loadRequests();
+}
+
+async function acceptAllRequests() {
+  if (!confirm("قبول جميع طلبات الرسائل؟")) return;
+  const res = await api("/api/ctrlpanel/message-requests/accept-all", { method: "POST" });
+  toast(`تم قبول ${res.accepted || 0} طلب`);
+  loadRequests();
+}
+
+async function declineAllRequests() {
+  if (!confirm("رفض جميع طلبات الرسائل؟")) return;
+  const res = await api("/api/ctrlpanel/message-requests/decline-all", { method: "POST" });
+  toast(`تم رفض ${res.declined || 0} طلب`);
+  loadRequests();
+}
+
+// Groups & Locks
+async function loadGroups() {
+  const c = document.getElementById("groupsList");
+  const res = await api("/api/ctrlpanel/groups");
+  if (!res.groups || !res.groups.length) {
+    c.innerHTML = `<div style="text-align:center;color:var(--t2);grid-column:1/-1;padding:20px;">لا توجد مجموعات محفوظة حالياً</div>`;
+    return;
+  }
+  c.innerHTML = res.groups.map(g => `
+    <div class="card" style="margin:0;">
+      <div style="font-weight:800;font-size:14px;margin-bottom:4px;">${g.name}</div>
+      <div style="font-size:11px;color:var(--t2);margin-bottom:12px;">ID: ${g.tid} • أعضاء: ${g.memberCount}</div>
+      <div class="btn-group">
+        <button class="btn btn-sm btn-ghost" onclick="toggleGroupNM('${g.tid}')">🔒 قفل الاسم</button>
+        <button class="btn btn-sm btn-ghost" onclick="toggleGroupNick('${g.tid}')">🏷️ قفل الكنية</button>
+        <button class="btn btn-sm btn-danger" onclick="toggleGroupStorm('${g.tid}')">⚡ العاصفة</button>
+      </div>
+    </div>
+  `).join("");
+}
+
+async function toggleGroupNM(tid) {
+  const name = prompt("اكتب اسم الغروب المقفول:");
+  if (name === null) return;
+  await api(`/api/ctrlpanel/groups/${tid}/nm`, { method: "POST", body: { action: name ? "start" : "stop", name } });
+  toast("تم تحديث قفل الاسم");
+}
+
+async function toggleGroupNick(tid) {
+  const nick = prompt("اكتب الكنية الموحدة المقفولة:");
+  if (nick === null) return;
+  await api(`/api/ctrlpanel/groups/${tid}/nick`, { method: "POST", body: { action: nick ? "global-all-start" : "stop-all", globalName: nick } });
+  toast("تم تحديث قفل الكنى");
+}
+
+async function toggleGroupStorm(tid) {
+  if (!confirm("هل تريد تفعيل عاصفة دوسك القتالية لهذه المجموعة؟")) return;
+  await api(`/api/engine/${tid}`, { method: "POST", body: { action: "start" } });
+  toast("⚡ تم إطلاق عاصفة دوسك!");
+}
+
+// Messenger Live Client
+async function loadMessengerThreads() {
+  const res = await api("/api/messenger/threads");
+  _allThreads = res.threads || [];
+  renderThreadsList(_allThreads);
+}
+
+function renderThreadsList(threads) {
+  const c = document.getElementById("threadList");
+  if (!threads.length) {
+    c.innerHTML = `<div style="text-align:center;color:var(--t2);padding:20px;">لا توجد محادثات</div>`;
+    return;
+  }
+  c.innerHTML = threads.map(t => `
+    <div class="thread-row ${String(t.tid) === String(_activeTid) ? 'active' : ''}" onclick="selectThread('${t.tid}')">
+      <div class="thread-av">${t.type === 'group' ? '👥' : '👤'}</div>
+      <div class="thread-info">
+        <div class="thread-title">${t.name}</div>
+        <div class="thread-preview">${t.lastBody || "..."}</div>
+      </div>
+    </div>
+  `).join("");
+}
+
+function filterThreads() {
+  const q = document.getElementById("msgSearch").value.trim().toLowerCase();
+  const f = _allThreads.filter(t => t.name.toLowerCase().includes(q) || String(t.tid).includes(q));
+  renderThreadsList(f);
+}
+
+async function selectThread(tid) {
+  _activeTid = tid;
+  const t = _allThreads.find(x => String(x.tid) === String(tid));
+  document.getElementById("activeThreadTitle").textContent = t ? t.name : `محادثة ${tid}`;
+  document.getElementById("activeThreadSubtitle").textContent = `ID: ${tid}`;
+  document.getElementById("threadActionBtns").style.display = "flex";
+  document.querySelectorAll(".thread-row").forEach(r => r.classList.remove("active"));
+  renderThreadsList(_allThreads);
+
+  const feed = document.getElementById("chatFeed");
+  feed.innerHTML = `<div style="text-align:center;padding:20px;">تحميل الرسائل...</div>`;
+  const res = await api(`/api/messenger/thread/${tid}/messages`);
+  feed.innerHTML = "";
+  (res.messages || []).forEach(appendChatMessage);
+  feed.scrollTop = feed.scrollHeight;
+}
+
+function appendChatMessage(m) {
+  const feed = document.getElementById("chatFeed");
+  const isBot = m.isFromBot;
+  const bubble = document.createElement("div");
+  bubble.className = `chat-bubble ${isBot ? 'bot' : 'user'}`;
+  
+  let attachHtml = "";
+  if (m.attachments && m.attachments.length) {
+    attachHtml = m.attachments.map(a => {
+      if (a.type === "photo" || a.type === "image") return `<img src="${a.url}" style="max-width:100%;border-radius:8px;margin-top:6px;">`;
+      return `<div style="font-size:11px;opacity:0.8;">📎 [ملف مرفق]</div>`;
+    }).join("");
+  }
+
+  bubble.innerHTML = `
+    <div>${m.body || ""}</div>
+    ${attachHtml}
+    <div class="chat-bubble-meta">${new Date(m.ts || Date.now()).toLocaleTimeString()}</div>
+  `;
+  feed.appendChild(bubble);
+  feed.scrollTop = feed.scrollHeight;
+}
+
+function updateThreadPreview(tid, body) {
+  const t = _allThreads.find(x => String(x.tid) === String(tid));
+  if (t) {
+    t.lastBody = body;
+    renderThreadsList(_allThreads);
+  }
+}
+
+async function sendChatMessage() {
+  const inp = document.getElementById("msgText");
+  const txt = inp.value.trim();
+  if (!txt || !_activeTid) return;
+  inp.value = "";
+  await api("/api/messenger/send", { method: "POST", body: { threadID: _activeTid, body: txt } });
+}
+
+function handleFileSelect(input) {
+  const file = input.files[0];
+  if (!file || !_activeTid) return;
+  const reader = new FileReader();
+  reader.onload = async () => {
+    const b64 = reader.result.split(",")[1];
+    const caption = prompt("اكتب تعليقاً على الملف (اختياري):") || "";
+    await api("/api/messenger/send-file", {
+      method: "POST",
+      body: { threadID: _activeTid, data: b64, filename: file.name, caption }
+    });
+    toast("تم إرسال الملف");
+  };
+  reader.readAsDataURL(file);
+}
+
+// Thread Action Modals
+async function openChangeTitleModal() {
+  const title = prompt("اكتب الاسم الجديد للمحادثة:");
+  if (!title || !_activeTid) return;
+  await api("/api/messenger/set-title", { method: "POST", body: { threadID: _activeTid, title } });
+  toast("تم تغيير الاسم");
+  selectThread(_activeTid);
+}
+
+async function openChangeNickModal() {
+  const uid = prompt("أدخل UID العضو المطلوب تغيير كنيته:");
+  if (!uid || !_activeTid) return;
+  const nickname = prompt("أدخل الكنية الجديدة:");
+  await api("/api/messenger/set-nick", { method: "POST", body: { threadID: _activeTid, userID: uid, nickname } });
+  toast("تم تغيير الكنية");
+}
+
+async function openChangeBotNickAllModal() {
+  const nickname = prompt("أدخل كنية البوت الجديدة لتعميمها على جميع المجموعات:");
+  if (nickname === null) return;
+  toast("جاري تعميم كنية البوت...");
+  const res = await api("/api/messenger/set-bot-nick-all", { method: "POST", body: { nickname } });
+  toast(`اكتمل التعميم: نجح ${res.success}، فشل ${res.failed}`);
+}
+
+async function openAddMemberModal() {
+  const uid = prompt("أدخل UID العضو لإضافته للغروب:");
+  if (!uid || !_activeTid) return;
+  await api("/api/messenger/add-member", { method: "POST", body: { threadID: _activeTid, userID: uid } });
+  toast("تمت إضافة العضو");
+}
+
+async function openThreadInfoModal() {
+  if (!_activeTid) return;
+  const res = await api(`/api/messenger/thread/${_activeTid}/info`);
+  if (!res.info) return toast("تعذر جلب التفاصيل");
+  alert(`معلومات المحادثة:\nالاسم: ${res.info.threadName || 'بدون اسم'}\nالمعرف: ${_activeTid}\nالأعضاء: ${(res.info.participantIDs||[]).length}`);
+}
+
+// Cookies View
+async function loadCookiesView() {
+  const inp = document.getElementById("cookiesInput");
+  const st = document.getElementById("cookiesStatus");
+  inp.value = "جاري قراءة الكوكيز...";
+  try {
+    const res = await api("/api/files/read?path=cookies.json");
+    inp.value = res.content || "";
+    st.textContent = "✓ تم تحميل الكوكيز الحالية";
+  } catch (_) {
+    inp.value = "";
+    st.textContent = "ملف الكوكيز فارغ أو غير موجود";
+  }
+}
+
+async function saveCookies() {
+  const raw = document.getElementById("cookiesInput").value.trim();
+  const res = await api("/api/cookies", { method: "POST", body: { cookies: raw } });
+  if (res.ok) {
+    toast(`تم حفظ ${res.count} كوكي وإعادة الاتصال بنجاح ✓`);
+    document.getElementById("cookiesStatus").textContent = `✓ متصل بـ ${res.count} كوكيز سليمة`;
+  } else {
+    toast(res.error || "فشل حفظ الكوكيز", "err");
+  }
+}
+
+// Commands View
+async function loadCommands() {
+  const res = await api("/api/commands");
+  _allCommands = res.commands || [];
+  document.getElementById("commandsCount").textContent = _allCommands.length;
+  renderCommandsGrid(_allCommands);
+}
+
+function renderCommandsGrid(cmds) {
+  const c = document.getElementById("commandsGrid");
+  c.innerHTML = cmds.map(cmd => `
+    <div class="card" style="margin:0;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <span style="font-weight:900;font-size:15px;color:var(--accent);">/${cmd.name}</span>
+        <span class="badge-status online">${cmd.category}</span>
+      </div>
+      <div style="font-size:12px;color:var(--t2);margin-bottom:10px;">${cmd.description || "لا يوجد وصف"}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:10px;font-family:monospace;color:var(--t3);">دور: ${cmd.role} • مدة: ${cmd.version}</span>
+        <button class="btn btn-sm btn-ghost" onclick="openEditCmdMetaModal('${cmd.name}')">تعديل</button>
+      </div>
+    </div>
+  `).join("");
+}
+
+function filterCommands() {
+  const q = document.getElementById("cmdSearch").value.trim().toLowerCase();
+  const f = _allCommands.filter(c => c.name.toLowerCase().includes(q) || (c.description||"").toLowerCase().includes(q));
+  renderCommandsGrid(f);
+}
+
+function openNewCommandModal() {
+  const name = prompt("اكتب اسم الأمر الجديد بالإنجليزي (مثل: ping):");
+  if (!name) return;
+  api("/api/commands/new", { method: "POST", body: { name } }).then(r => {
+    if (r.ok) {
+      toast(r.message || "تم إنشاء الأمر");
+      loadCommands();
+    } else {
+      toast(r.error || "خطأ", "err");
+    }
+  });
+}
+
+function openEditCmdMetaModal(name) {
+  const newDesc = prompt(`أدخل الوصف الجديد لأمر /${name}:`);
+  if (newDesc === null) return;
+  api(`/api/commands/${name}/update-meta`, { method: "POST", body: { description: newDesc } }).then(() => {
+    toast("تم تحديث وصف الأمر");
+    loadCommands();
+  });
+}
+
+// Thread Activation (Command Toggles)
+async function loadActivationView() {
+  const tRes = await api("/api/ctrlpanel/groups");
+  const sel = document.getElementById("activationThreadSelect");
+  sel.innerHTML = (tRes.groups || []).map(g => `<option value="${g.tid}">${g.name} (${g.tid})</option>`).join("");
+  loadThreadCommandConfig();
+}
+
+async function loadThreadCommandConfig() {
+  const tid = document.getElementById("activationThreadSelect").value;
+  if (!tid) return;
+  const res = await api(`/api/thread-commands/${tid}`);
+  document.getElementById("activationMode").value = res.config?.mode || "blacklist";
+  const blocked = new Set((res.config?.commands || []).map(String));
+  
+  const cList = document.getElementById("activationCommandsList");
+  cList.innerHTML = _allCommands.map(cmd => {
+    const isChecked = res.config?.mode === "whitelist" ? blocked.has(cmd.name) : !blocked.has(cmd.name);
+    return `
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;background:var(--surface);padding:8px 10px;border-radius:8px;border:1px solid var(--border);">
+        <input type="checkbox" value="${cmd.name}" ${isChecked ? 'checked' : ''} class="act-cmd-chk">
+        <span>/${cmd.name}</span>
+      </label>
+    `;
+  }).join("");
+}
+
+async function saveThreadCommands() {
+  const tid = document.getElementById("activationThreadSelect").value;
+  const mode = document.getElementById("activationMode").value;
+  const checked = Array.from(document.querySelectorAll(".act-cmd-chk:checked")).map(c => c.value);
+  const uncheck = Array.from(document.querySelectorAll(".act-cmd-chk:not(:checked)")).map(c => c.value);
+  const commands = mode === "whitelist" ? checked : uncheck;
+  await api(`/api/thread-commands/${tid}`, { method: "POST", body: { mode, commands } });
+  toast("تم حفظ تفعيل الأوامر للمجموعة ✓");
+}
+
+// Code Editor
+async function loadEditorCommands() {
+  const res = await api("/api/commands");
+  const sel = document.getElementById("editorCmdSelect");
+  sel.innerHTML = (res.commands || []).map(c => `<option value="${c.name}">/${c.name}</option>`).join("");
+  loadCommandSource();
+}
+
+async function loadCommandSource() {
+  const name = document.getElementById("editorCmdSelect").value;
+  if (!name) return;
+  const res = await api(`/api/commands/${name}/source`);
+  document.getElementById("commandCodeEditor").value = res.code || "";
+}
+
+async function saveCommandSource() {
+  const name = document.getElementById("editorCmdSelect").value;
+  const code = document.getElementById("commandCodeEditor").value;
+  const res = await api(`/api/commands/${name}/source`, { method: "POST", body: { code } });
+  if (res.ok) {
+    toast(res.message || "تم الحفظ بنجاح ✓");
+  } else {
+    toast(res.error || "خطأ في الكود", "err");
+  }
+}
+
+// Live Terminal Logs
+function renderLogs() {
+  const t = document.getElementById("terminalLog");
+  const q = (document.getElementById("logFilter")?.value || "").toLowerCase();
+  const f = _logLines.filter(l => !q || l.line.toLowerCase().includes(q));
+  t.innerHTML = f.map(l => {
+    let cls = "";
+    if (l.line.includes("ERR") || l.line.includes("error") || l.line.includes("خطأ")) cls = "err";
+    else if (l.line.includes("WARN") || l.line.includes("تحذير")) cls = "warn";
+    else if (l.line.includes("✓") || l.line.includes("بنجاح")) cls = "ok";
+    return `<div class="log-line ${cls}">[${new Date(l.ts).toLocaleTimeString()}] ${l.line}</div>`;
+  }).join("");
+  if (_autoScroll) t.scrollTop = t.scrollHeight;
+}
+
+function clearLogs() {
+  _logLines = [];
+  renderLogs();
+}
+
+function toggleAutoScroll() {
+  _autoScroll = !_autoScroll;
+  document.getElementById("autoScrollBtn").textContent = `⬇️ التمرير التلقائي: ${_autoScroll ? 'نعم' : 'لا'}`;
+}
+
+// Messages Feed
+async function loadMessagesFeed() {
+  const res = await api("/api/messages");
+  const c = document.getElementById("messagesLogTable");
+  c.innerHTML = (res.messages || []).map(m => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--surface);border-radius:var(--r3);font-size:12px;">
+      <div>
+        <span style="font-weight:bold;color:var(--accent);">من: ${m.sid || 'مجهول'}</span> • <span>مجموعة: ${m.tid}</span>
+        <div style="color:var(--t2);margin-top:2px;">${m.body || ""}</div>
+      </div>
+      <div style="font-size:10px;color:var(--t3);">${new Date(m.ts).toLocaleTimeString()}</div>
+    </div>
+  `).join("");
+}
+
+// AI Studio
+async function generateCommandAI() {
+  const desc = document.getElementById("aiPromptDesc").value.trim();
+  if (!desc) return toast("يرجى إدخال وصف الأمر");
+  toast("جاري التوليد بالذكاء الاصطناعي...");
+  const res = await api("/api/ai/generate", { method: "POST", body: { description: desc } });
+  if (res.ok) {
+    document.getElementById("aiGeneratedSection").style.display = "block";
+    document.getElementById("aiGeneratedCode").value = res.code;
+    toast("تم توليد الكود بنجاح! راجعه ثم احفظه.");
+  } else {
+    toast(res.error || "فشل التوليد", "err");
+  }
+}
+
+async function saveAIGeneratedCommand() {
+  const name = document.getElementById("aiSaveCmdName").value.trim();
+  const code = document.getElementById("aiGeneratedCode").value;
+  if (!name || !code) return toast("الاسم والكود مطلوبان");
+  const res = await api("/api/ai/save-command", { method: "POST", body: { name, code } });
+  if (res.ok) {
+    toast(res.message || "تم حفظ الأمر بنجاح!");
+    loadCommands();
+  } else {
+    toast(res.error || "خطأ", "err");
+  }
+}
+
+async function sendAIChat() {
+  const inp = document.getElementById("aiChatInput");
+  const msg = inp.value.trim();
+  if (!msg) return;
+  inp.value = "";
+  const feed = document.getElementById("aiChatFeed");
+  feed.innerHTML += `<div style="align-self:flex-start;background:var(--surface2);padding:8px 12px;border-radius:12px;font-size:12px;">👤 ${msg}</div>`;
+  feed.scrollTop = feed.scrollHeight;
+  
+  _aiChatHistory.push({ role: "user", content: msg });
+  const res = await api("/api/ai/chat", { method: "POST", body: { message: msg, history: _aiChatHistory } });
+  if (res.ok) {
+    _aiChatHistory.push({ role: "assistant", content: res.reply });
+    feed.innerHTML += `<div style="align-self:flex-end;background:var(--accent-lo);border:1px solid var(--border);padding:8px 12px;border-radius:12px;font-size:12px;">🤖 ${res.reply}</div>`;
+    feed.scrollTop = feed.scrollHeight;
+  }
+}
+
+// File Explorer
+let _activeFileRel = "";
+async function loadFilesTree() {
+  const c = document.getElementById("fileTreeContainer");
+  c.innerHTML = "تحميل الملفات...";
+  const res = await api("/api/files/tree");
+  c.innerHTML = renderTreeNodes(res.tree || []);
+}
+
+function renderTreeNodes(nodes, depth = 0) {
+  return nodes.map(n => {
+    if (n.type === "dir") {
+      return `
+        <div>
+          <div class="tree-node" style="padding-right:${depth*12}px;font-weight:bold;">📁 ${n.name}</div>
+          <div style="margin-right:10px;">${renderTreeNodes(n.children || [], depth + 1)}</div>
+        </div>
+      `;
+    }
+    return `
+      <div class="tree-node" style="padding-right:${depth*12}px;" onclick="openProjectFile('${n.path}')">📄 ${n.name}</div>
+    `;
+  }).join("");
+}
+
+async function openProjectFile(rel) {
+  _activeFileRel = rel;
+  document.getElementById("activeFilePath").textContent = rel;
+  const res = await api(`/api/files/read?path=${encodeURIComponent(rel)}`);
+  document.getElementById("fileEditorArea").value = res.content || "";
+}
+
+async function saveActiveFile() {
+  if (!_activeFileRel) return toast("اختر ملفاً أولاً");
+  const content = document.getElementById("fileEditorArea").value;
+  await api("/api/files/write", { method: "POST", body: { path: _activeFileRel, content } });
+  toast("تم حفظ الملف بنجاح ✓");
+}
+
+// GitHub Deployment (NO APK)
+async function pushToGitHub() {
+  const repo = document.getElementById("ghRepo").value.trim();
+  const token = document.getElementById("ghToken").value.trim();
+  const message = document.getElementById("ghCommitMsg").value.trim();
+  if (!repo || !token) return toast("يرجى إدخال اسم الريبو وتوكن GitHub");
+  const logBox = document.getElementById("deployLog");
+  logBox.innerHTML = `<div>🚀 جاري رفع كود البوت إلى GitHub...</div>`;
+  const res = await api("/api/github/push", { method: "POST", body: { repo, token, message } });
+  if (res.log) {
+    logBox.innerHTML = res.log.map(l => `<div>${l.msg}</div>`).join("");
+  }
+  if (res.ok) {
+    toast("تم الرفع بنجاح! ✓");
+  } else {
+    toast(res.error || "فشل الرفع", "err");
+  }
+}
+
+// Railway
+async function checkRailwayStatus() {
+  const token = document.getElementById("railwayToken").value.trim();
+  const projectId = document.getElementById("railwayProjectId").value.trim();
+  if (!token || !projectId) return toast("token و projectId مطلوبان");
+  const res = await api(`/api/railway/status?token=${encodeURIComponent(token)}&projectId=${encodeURIComponent(projectId)}`);
+  document.getElementById("railwayStatusResult").textContent = JSON.stringify(res.status || res.error);
+}
+
+async function triggerRailwayDeploy() {
+  const token = document.getElementById("railwayToken").value.trim();
+  const projectId = document.getElementById("railwayProjectId").value.trim();
+  if (!token || !projectId) return toast("token و projectId مطلوبان");
+  const res = await api("/api/railway/deploy", { method: "POST", body: { token, projectId } });
+  toast(res.message || "تم إطلاق Deploy");
+}
+
+// AddLock
+async function loadAddLockData() {
+  const c = document.getElementById("addLockGroupsContainer");
+  const tRes = await api("/api/addlock/threads");
+  const cRes = await api("/api/addlock");
+  const cfg = cRes.config || {};
+  c.innerHTML = (tRes.threads || []).map(t => {
+    const isEn = cfg[t.tid]?.enabled || false;
+    const accs = (cfg[t.tid]?.accounts || []).join("\n");
+    return `
+      <div class="card" style="margin:0;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <div style="font-weight:800;font-size:14px;">${t.name} (ID: ${t.tid})</div>
+          <button class="btn btn-sm ${isEn ? 'btn-success' : 'btn-ghost'}" onclick="toggleAddLockThread('${t.tid}', ${!isEn})">${isEn ? '🟢 حماية مفعلة' : '⚪ معطل'}</button>
+        </div>
+        <div class="fg">
+          <label>الحسابات والروابط المسموح لها بالإضافة (UID أو رابط لكل سطر)</label>
+          <textarea id="addlock_accs_${t.tid}" rows="3" class="code" placeholder="61594321502697">${accs}</textarea>
+        </div>
+        <button class="btn btn-sm btn-primary" onclick="saveAddLockThread('${t.tid}')">💾 حفظ حسابات المجموعة</button>
+      </div>
+    `;
+  }).join("");
+}
+
+async function toggleAddLockThread(tid, enabled) {
+  await api("/api/addlock", { method: "POST", body: { tid, enabled } });
+  toast(`تم ${enabled ? 'تفعيل' : 'إيقاف'} AddLock`);
+  loadAddLockData();
+}
+
+async function saveAddLockThread(tid) {
+  const raw = document.getElementById(`addlock_accs_${tid}`).value;
+  const links = raw.split("\n").map(s => s.trim()).filter(Boolean);
+  await api("/api/addlock", { method: "POST", body: { tid, links } });
+  toast("تم حفظ حسابات AddLock المصرح بها ✓");
+}
+
+// Settings
+async function loadBotSettings() {
+  const res = await api("/api/config");
+  if (res.config) {
+    document.getElementById("cfgBotName").value = res.config.botName || "DOSK";
+    document.getElementById("cfgPrefix").value = res.config.prefix || "/";
+    document.getElementById("cfgOwnerID").value = res.config.ownerID || "";
+    document.getElementById("cfgAdmins").value = (res.config.adminBot || []).join(", ");
+  }
+}
+
+async function saveBotSettings() {
+  const botName = document.getElementById("cfgBotName").value.trim();
+  const prefix = document.getElementById("cfgPrefix").value.trim();
+  const ownerID = document.getElementById("cfgOwnerID").value.trim();
+  const adminBot = document.getElementById("cfgAdmins").value.split(",").map(s => s.trim()).filter(Boolean);
+  await api("/api/config", { method: "POST", body: { botName, prefix, ownerID, adminBot } });
+  toast("تم حفظ إعدادات البوت بنجاح ✓");
+}
+
+async function saveAIEnvKeys() {
+  const anthropic = document.getElementById("envAnthropicKey").value.trim();
+  const openai = document.getElementById("envOpenAIKey").value.trim();
+  const groq = document.getElementById("envGroqKey").value.trim();
+  const pairs = {};
+  if (anthropic) pairs["ANTHROPIC_API_KEY"] = anthropic;
+  if (openai) pairs["OPENAI_API_KEY"] = openai;
+  if (groq) pairs["GROQ_API_KEY"] = groq;
+  await api("/api/env/set", { method: "POST", body: { pairs } });
+  toast("تم حفظ مفاتيح الذكاء الاصطناعي في بيئة النظام ✓");
+}
+
+// Start
+initApp();
+</script>
+</body>
+</html>
+

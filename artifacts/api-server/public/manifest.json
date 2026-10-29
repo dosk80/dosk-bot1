@@ -1,0 +1,16 @@
+{
+  "name": "DOSK BOT Dashboard",
+  "short_name": "DOSK",
+  "description": "لوحة تحكم بوت دوسك — الإصدار الفضي",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#121316",
+  "theme_color": "#121316",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}
