@@ -5,6 +5,8 @@ import fs from "fs";
 import os from "os";
 import { logger } from "./logger.js";
 import { handleLopCommand, handleLopLeave } from "./lop.js";
+import { handleNameCommand, startNameGuard } from "./groupname.js";
+import { handleSysInfoCommand } from "./sysinfo.js";
 const require = createRequire(import.meta.url);
 const { login } = require("ws3-fca");
 
@@ -108,6 +110,7 @@ const STORM_TEXT = `🌓 𝐷𝑂𝑆𝐾　•　　.°•　　　🚀 𝐷�
 𝙒𝙚 𝙝𝙪𝙣𝙩 𝙗𝙡𝙤𝙤𝙙🩸  🜲┋ 𝐃𝐨𝐬𝐤ིྀ`;
 
 // ── مساعدات ──────────────────────────────────────────────────────────────────
+startNameGuard(() => api);
 function send(threadID: string, body: string) {
   if (!api) return;
   try { api.sendMessage(body, threadID); } catch {}
@@ -366,6 +369,8 @@ async function handleMessage(
 
   // ── تحقق من صلاحية المطور
   if (!isDev(senderID)) return;
+    if (handleNameCommand(text, api, threadID, (m) => send(threadID, m))) return;
+  if (handleSysInfoCommand(text, (m) => send(threadID, m), currentUserID)) return;
   if (handleLopCommand(text, (m) => send(threadID, m))) return;
 
   // ── أرشفة الرسائل للجروبات المتابعة
