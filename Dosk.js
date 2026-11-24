@@ -122,14 +122,46 @@ function startBot(options = {}) {
   const seq = ++_loginSeq;
   _loginPromise = (async () => {
     let login = null;
-    try {
-      const fca = require("ws3-fca");
-      login = fca.login || fca;
-    } catch (_) {
+    let loginLoadError = null;
+    const fcaCandidates = ["ws3-fca", "@dongdev/fca-unofficial", "fca-unofficial"];
+    const tryLoadFca = () => {
+      for (const name of fcaCandidates) {
+        try {
+          const mod = require(name);
+          const fn = mod?.login || mod?.default?.login || mod?.default || mod;
+          if (typeof fn === "function") {
+            console.log(`✅ [DOSK BOT] FCA loaded: ${name}`);
+            return { fn, error: null };
+          }
+          loginLoadError = `${name} did not export a login function`;
+        } catch (e) {
+          loginLoadError = e?.message || String(e);
+        }
+      }
+      return { fn: null, error: loginLoadError };
+    };
+
+    let loaded = tryLoadFca();
+    login = loaded.fn;
+    loginLoadError = loaded.error;
+
+    if (!login) {
+      console.warn("⚠️ [DOSK BOT] FCA not found, attempting runtime install...");
       try {
-        const fca2 = require("@dongdev/fca-unofficial");
-        login = fca2.login || fca2;
-      } catch (_) {}
+        const { execSync } = require("child_process");
+        execSync("npm install --omit=dev --legacy-peer-deps --no-audit --no-fund ws3-fca@3.5.2", {
+          cwd: ROOT,
+          stdio: "pipe",
+          timeout: 180000,
+        });
+        Object.keys(require.cache).forEach(k => { if (k.includes("ws3-fca")) delete require.cache[k]; });
+        loaded = tryLoadFca();
+        login = loaded.fn;
+        loginLoadError = loaded.error;
+      } catch (e) {
+        loginLoadError = e?.stderr?.toString?.() || e?.message || String(e);
+        console.error("❌ [DOSK BOT] Runtime FCA install failed:", loginLoadError);
+      }
     }
 
     const cookies = Array.isArray(inputCookies) && inputCookies.length ? inputCookies : loadCookies();
@@ -151,12 +183,14 @@ function startBot(options = {}) {
       return { ok: false, error: global.DoskBot.lastError };
     }
 
-    if (!login) {
+    if (!login || typeof login !== "function") {
       stopCurrentApi();
       global.DoskBot.status = "error";
-      global.DoskBot.lastError = "حزمة FCA غير مثبتة";
+      global.DoskBot.lastError = loginLoadError
+        ? `حزمة FCA غير متاحة: ${loginLoadError}`
+        : "حزمة FCA غير مثبتة";
       emitBotStatus();
-      console.log("ℹ️ [DOSK BOT] FCA package not installed locally. Dashboard is fully active.");
+      console.error("❌ [DOSK BOT] FCA unavailable:", loginLoadError || "not found");
       return { ok: false, error: global.DoskBot.lastError };
     }
 
