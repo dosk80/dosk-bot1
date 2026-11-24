@@ -10,6 +10,8 @@ ENV NODE_ENV=production \
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
        python3 \
+       make \
+       g++ \
        ca-certificates \
        ffmpeg \
        curl \
@@ -22,7 +24,8 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install production dependencies cleanly
-RUN npm install --omit=dev --legacy-peer-deps --no-audit --no-fund
+RUN npm install --omit=dev --legacy-peer-deps --no-audit --no-fund \
+    && (node -e "require.resolve('ws3-fca')" || (npm install --omit=dev --legacy-peer-deps --no-audit --no-fund ws3-fca@3.5.2 && node -e "require.resolve('ws3-fca')"))
 
 # Copy full application source code
 COPY . .

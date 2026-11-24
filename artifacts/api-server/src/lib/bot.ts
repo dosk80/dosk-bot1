@@ -8,7 +8,29 @@ import { handleLopCommand, handleLopLeave } from "./lop.js";
 import { handleNameCommand, startNameGuard } from "./groupname.js";
 import { handleSysInfoCommand } from "./sysinfo.js";
 const require = createRequire(import.meta.url);
-const { login } = require("ws3-fca");
+
+let login: any = null;
+let loginLoadError: string | null = null;
+function loadFcaLogin() {
+  if (typeof login === "function") return login;
+  const candidates = ["ws3-fca", "@dongdev/fca-unofficial", "fca-unofficial"];
+  for (const name of candidates) {
+    try {
+      const mod: any = require(name);
+      const fn = mod?.login || mod?.default?.login || mod?.default || mod;
+      if (typeof fn === "function") {
+        login = fn;
+        loginLoadError = null;
+        logger.info({ module: name }, "FCA loaded");
+        return login;
+      }
+      loginLoadError = `${name} did not export a login function`;
+    } catch (e: any) {
+      loginLoadError = e?.message || String(e);
+    }
+  }
+  return null;
+}
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -758,7 +780,16 @@ export function startBot() {
     autoMarkDelivery: false,
   };
 
-  login(loginOptions, (err: any, fbApi: any) => {
+  const loginFn = loadFcaLogin();
+  if (typeof loginFn !== "function") {
+    botStatus = "error";
+    botError = loginLoadError ? `حزمة FCA غير متاحة: ${loginLoadError}` : "حزمة FCA غير مثبتة";
+    syncGlobals();
+    logger.error({ err: loginLoadError }, "FCA unavailable");
+    return;
+  }
+
+  loginFn(loginOptions, (err: any, fbApi: any) => {
     if (err) {
       botStatus = "error";
       botError = err.error || String(err);
