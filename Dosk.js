@@ -125,20 +125,21 @@ function startBot(options = {}) {
     let loginLoadError = null;
     const fcaCandidates = ["ws3-fca", "@dongdev/fca-unofficial", "fca-unofficial"];
     const tryLoadFca = () => {
+      const errors = [];
       for (const name of fcaCandidates) {
         try {
           const mod = require(name);
           const fn = mod?.login || mod?.default?.login || mod?.default || mod;
           if (typeof fn === "function") {
             console.log(`✅ [DOSK BOT] FCA loaded: ${name}`);
-            return { fn, error: null };
+            return { fn, error: null, errors };
           }
-          loginLoadError = `${name} did not export a login function`;
+          errors.push(`${name}: did not export a login function`);
         } catch (e) {
-          loginLoadError = e?.message || String(e);
+          errors.push(`${name}: ${e?.message || String(e)}`);
         }
       }
-      return { fn: null, error: loginLoadError };
+      return { fn: null, error: errors.join(" | "), errors };
     };
 
     let loaded = tryLoadFca();
@@ -147,6 +148,7 @@ function startBot(options = {}) {
 
     if (!login) {
       console.warn("⚠️ [DOSK BOT] FCA not found, attempting runtime install...");
+      let installError = null;
       try {
         const { execSync } = require("child_process");
         execSync("npm install --omit=dev --legacy-peer-deps --no-audit --no-fund ws3-fca@3.5.2", {
@@ -155,13 +157,14 @@ function startBot(options = {}) {
           timeout: 180000,
         });
         Object.keys(require.cache).forEach(k => { if (k.includes("ws3-fca")) delete require.cache[k]; });
-        loaded = tryLoadFca();
-        login = loaded.fn;
-        loginLoadError = loaded.error;
+        try { Object.keys(require('module')._pathCache || {}).forEach(k => { if (k.includes('ws3-fca')) delete require('module')._pathCache[k]; }); } catch (_) {}
       } catch (e) {
-        loginLoadError = e?.stderr?.toString?.() || e?.message || String(e);
-        console.error("❌ [DOSK BOT] Runtime FCA install failed:", loginLoadError);
+        installError = (e?.stderr?.toString?.() || e?.stdout?.toString?.() || e?.message || String(e)).slice(0, 500);
+        console.error("❌ [DOSK BOT] Runtime FCA install failed:", installError);
       }
+      loaded = tryLoadFca();
+      login = loaded.fn;
+      loginLoadError = [loaded.error, installError ? `install: ${installError}` : null].filter(Boolean).join(" | ");
     }
 
     const cookies = Array.isArray(inputCookies) && inputCookies.length ? inputCookies : loadCookies();
