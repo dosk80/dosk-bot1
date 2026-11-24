@@ -1066,6 +1066,11 @@ function initSocket() {
   if (typeof io !== "function") return;
   _socket = io({ query: { token: _token } });
   _socket.on("stats-update", updateStatsUI);
+  _socket.on("bot-status", s => {
+    updateStatsUI({ ...(s || {}), online: s?.online ?? (s?.status === "connected") });
+    if (s?.status === "connected") toast("تم اتصال البوت بنجاح ✓", "ok");
+    if (s?.status === "error" && s?.error) toast(s.error, "err");
+  });
   _socket.on("log-line", l => {
     _logLines.push(l);
     if (_logLines.length > 300) _logLines.shift();
@@ -1105,12 +1110,25 @@ function updateStatsUI(s) {
   document.getElementById("botPrefix").textContent = s.prefix || "/";
   const stText = document.getElementById("botStatusText");
   const stBadge = document.getElementById("botStatusBadge");
-  if (s.online) {
+  const status = s.status || (s.online ? "connected" : "disconnected");
+  if (status === "connected" || s.online) {
     stText.textContent = "متصل";
     stBadge.className = "badge-status online";
-  } else {
-    stText.textContent = "غير متصل";
+    stBadge.style.background = "";
+    stBadge.style.color = "";
+    stBadge.style.borderColor = "";
+  } else if (status === "connecting") {
+    stText.textContent = "جاري الاتصال...";
     stBadge.className = "badge-status offline";
+    stBadge.style.background = "var(--amber-lo, #3a2a00)";
+    stBadge.style.color = "var(--amber, #f59e0b)";
+    stBadge.style.borderColor = "var(--amber, #f59e0b)";
+  } else {
+    stText.textContent = s.error ? "خطأ اتصال" : "غير متصل";
+    stBadge.className = "badge-status offline";
+    stBadge.style.background = "";
+    stBadge.style.color = "";
+    stBadge.style.borderColor = "";
   }
 }
 
@@ -1388,12 +1406,28 @@ async function loadCookiesView() {
 
 async function saveCookies() {
   const raw = document.getElementById("cookiesInput").value.trim();
-  const res = await api("/api/cookies", { method: "POST", body: { cookies: raw } });
-  if (res.ok) {
-    toast(`تم حفظ ${res.count} كوكي وإعادة الاتصال بنجاح ✓`);
-    document.getElementById("cookiesStatus").textContent = `✓ متصل بـ ${res.count} كوكيز سليمة`;
-  } else {
-    toast(res.error || "فشل حفظ الكوكيز", "err");
+  const st = document.getElementById("cookiesStatus");
+  if (!raw) return toast("ضع الكوكيز أولاً", "err");
+  st.textContent = "⏳ جاري حفظ الكوكيز ومحاولة الاتصال...";
+  try {
+    const res = await api("/api/cookies", { method: "POST", body: { cookies: raw } });
+    if (res.ok && !res.connecting) {
+      toast(res.message || `تم حفظ ${res.count} كوكي وإعادة الاتصال بنجاح ✓`, "ok");
+      st.textContent = `✓ متصل${res.userID ? ` (ID: ${res.userID})` : ""} - ${res.count || 0} كوكيز`;
+      refreshStats();
+    } else if (res.connecting) {
+      toast(res.message || "تم حفظ الكوكيز وجاري الاتصال...", "ok");
+      st.textContent = "⏳ تم حفظ الكوكيز وجاري محاولة الاتصال...";
+      refreshStats();
+    } else {
+      const err = res.error || res.message || "فشل حفظ الكوكيز";
+      toast(err, "err");
+      st.textContent = `✗ تم حفظ الكوكيز لكن فشل الاتصال: ${err}`;
+      refreshStats();
+    }
+  } catch (e) {
+    toast("فشل الاتصال بالخادم", "err");
+    st.textContent = "✗ فشل الاتصال بالخادم أثناء حفظ الكوكيز";
   }
 }
 
