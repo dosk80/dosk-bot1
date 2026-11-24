@@ -23,8 +23,26 @@ global.DoskBot = {
   config: {},
   api: null,
   userID: null,
+  status: "disconnected",
+  lastError: null,
   commands: new Map()
 };
+
+function emitBotStatus(extra = {}) {
+  try {
+    const status = global.DoskBot?.status || (global.DoskBot?.api ? "connected" : "disconnected");
+    const payload = {
+      status,
+      online: status === "connected",
+      uid: global.DoskBot?.userID || null,
+      botName: global.DoskBot?.config?.botName || "DOSK",
+      error: global.DoskBot?.lastError || null,
+      ts: Date.now(),
+      ...extra,
+    };
+    if (typeof global._emitBotStatus === "function") global._emitBotStatus(payload);
+  } catch (_) {}
+}
 
 function loadConfig() {
   try {
@@ -51,38 +69,18 @@ function loadCookies() {
   for (const c of candidates) {
     if (fs.existsSync(c)) {
       try {
-        return JSON.parse(fs.readFileSync(c, "utf8"));
+        const raw = fs.readFileSync(c, "utf8").replace(/^\uFEFF/, "");
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length) return parsed;
       } catch (_) {}
     }
   }
   return null;
 }
 
-// Start FCA Bot Engine
-function startBot() {
-  let login = null;
-  try {
-    const fca = require("ws3-fca");
-    login = fca.login || fca;
-  } catch (_) {
-    try {
-      const fca2 = require("@dongdev/fca-unofficial");
-      login = fca2.login || fca2;
-    } catch (_) {}
-  }
-
-  const cookies = loadCookies();
-  if (!cookies) {
-    console.log("⚠️ [DOSK BOT] Cookies file not found yet. Use the dashboard to enter cookies.");
-    return;
-  }
-
-  if (!login) {
-    console.log("ℹ️ [DOSK BOT] FCA package not installed locally. Dashboard is fully active.");
-    return;
-  }
-
-  const appState = cookies.map(c => ({
+function normalizeAppState(cookies) {
+  if (!Array.isArray(cookies)) return [];
+  return cookies.map(c => ({
     key: c.key || c.name,
     value: c.value,
     domain: c.domain || "facebook.com",
@@ -90,55 +88,241 @@ function startBot() {
     hostOnly: c.hostOnly ?? false,
     creation: c.creation || new Date().toISOString(),
     lastAccessed: c.lastAccessed || new Date().toISOString(),
-  }));
+  })).filter(c => c.key && typeof c.value !== "undefined");
+}
 
-  console.log("🚀 [DOSK BOT] Logging in to Facebook Messenger...");
-  login(
-    {
-      appState,
-      userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15",
-      logLevel: "silent"
-    },
-    (err, api) => {
-      if (err) {
-        console.error("❌ [DOSK BOT] Login failed:", err.error || err.message || err);
-        return;
-      }
-      global.DoskBot.api = api;
-      global.DoskBot.userID = api.getCurrentUserID?.() || "bot";
-      console.log(`✅ [DOSK BOT] Logged in successfully! User ID: ${global.DoskBot.userID}`);
+function hasRequiredCookies(cookies) {
+  const arr = Array.isArray(cookies) ? cookies : [];
+  const hasCUser = arr.some(c => (c.key === "c_user" || c.name === "c_user") && c.value);
+  const hasXs = arr.some(c => (c.key === "xs" || c.name === "xs") && c.value);
+  return hasCUser && hasXs;
+}
 
-      api.setOptions({
-        selfListen: false,
-        listenEvents: true,
-        autoMarkDelivery: false,
-        autoMarkRead: false,
-        logLevel: "silent"
-      });
+function stopCurrentApi() {
+  const api = global.DoskBot?.api;
+  global.DoskBot.api = null;
+  global.DoskBot.userID = null;
+  if (!api) return;
+  try {
+    if (typeof api.stopListening === "function") api.stopListening();
+  } catch (_) {}
+  try {
+    if (typeof api.removeAllListeners === "function") api.removeAllListeners();
+  } catch (_) {}
+}
 
-      api.listenMqtt((listenErr, message) => {
-        if (listenErr) return;
-        if (!message) return;
-        _bufferMsg(message);
+let _loginPromise = null;
+let _loginSeq = 0;
 
-        // Handle group name protection
-        if (message.type === "event" && message.logMessageType === "log:thread-name") {
-          const tid = String(message.threadID);
-          const nmCmd = require("./src/commands/nm");
-          nmCmd.onEvent?.({ api, event: message });
-        }
-      });
+// Start FCA Bot Engine
+function startBot(options = {}) {
+  const { cookies: inputCookies, force = false } = options || {};
+  if (_loginPromise && !force) return _loginPromise;
+
+  const seq = ++_loginSeq;
+  _loginPromise = (async () => {
+    let login = null;
+    try {
+      const fca = require("ws3-fca");
+      login = fca.login || fca;
+    } catch (_) {
+      try {
+        const fca2 = require("@dongdev/fca-unofficial");
+        login = fca2.login || fca2;
+      } catch (_) {}
     }
-  );
+
+    const cookies = Array.isArray(inputCookies) && inputCookies.length ? inputCookies : loadCookies();
+    if (!cookies) {
+      stopCurrentApi();
+      global.DoskBot.status = "disconnected";
+      global.DoskBot.lastError = "ملف الكوكيز غير موجود";
+      emitBotStatus();
+      console.log("⚠️ [DOSK BOT] Cookies file not found yet. Use the dashboard to enter cookies.");
+      return { ok: false, error: global.DoskBot.lastError };
+    }
+
+    if (!hasRequiredCookies(cookies)) {
+      stopCurrentApi();
+      global.DoskBot.status = "error";
+      global.DoskBot.lastError = "كوكيز ناقصة (c_user أو xs مفقود)";
+      emitBotStatus();
+      console.log("❌ [DOSK BOT] Cookies missing c_user/xs.");
+      return { ok: false, error: global.DoskBot.lastError };
+    }
+
+    if (!login) {
+      stopCurrentApi();
+      global.DoskBot.status = "error";
+      global.DoskBot.lastError = "حزمة FCA غير مثبتة";
+      emitBotStatus();
+      console.log("ℹ️ [DOSK BOT] FCA package not installed locally. Dashboard is fully active.");
+      return { ok: false, error: global.DoskBot.lastError };
+    }
+
+    const appState = normalizeAppState(cookies);
+    if (!appState.length) {
+      stopCurrentApi();
+      global.DoskBot.status = "error";
+      global.DoskBot.lastError = "فشل تجهيز appState من الكوكيز";
+      emitBotStatus();
+      return { ok: false, error: global.DoskBot.lastError };
+    }
+
+    stopCurrentApi();
+    global.DoskBot.status = "connecting";
+    global.DoskBot.lastError = null;
+    emitBotStatus();
+    console.log("🚀 [DOSK BOT] Logging in to Facebook Messenger...");
+
+    return await new Promise((resolve) => {
+      let settled = false;
+      const finish = (result) => {
+        if (settled) return;
+        settled = true;
+        resolve(result);
+      };
+      const timer = setTimeout(() => {
+        if (settled) return;
+        stopCurrentApi();
+        global.DoskBot.status = "error";
+        global.DoskBot.lastError = "انتهت مهلة تسجيل الدخول";
+        emitBotStatus();
+        console.error("❌ [DOSK BOT] Login timeout");
+        finish({ ok: false, error: global.DoskBot.lastError });
+      }, 45000);
+      if (typeof timer.unref === "function") timer.unref();
+
+      try {
+        login(
+          {
+            appState,
+            userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15",
+            logLevel: "silent",
+            forceLogin: true,
+          },
+          (err, api) => {
+            clearTimeout(timer);
+            if (seq !== _loginSeq) return finish({ ok: false, error: "تم بدء محاولة دخول أحدث" });
+            if (err) {
+              const msg = err?.error || err?.message || (typeof err === "string" ? err : JSON.stringify(err));
+              stopCurrentApi();
+              global.DoskBot.status = "error";
+              global.DoskBot.lastError = String(msg || "فشل تسجيل الدخول");
+              emitBotStatus();
+              console.error("❌ [DOSK BOT] Login failed:", global.DoskBot.lastError);
+              return finish({ ok: false, error: global.DoskBot.lastError });
+            }
+
+            try {
+              global.DoskBot.api = api;
+              global.DoskBot.userID = api.getCurrentUserID?.() || "bot";
+              global.DoskBot.status = "connected";
+              global.DoskBot.lastError = null;
+              console.log(`✅ [DOSK BOT] Logged in successfully! User ID: ${global.DoskBot.userID}`);
+
+              try {
+                api.setOptions({
+                  selfListen: false,
+                  listenEvents: true,
+                  autoMarkDelivery: false,
+                  autoMarkRead: false,
+                  logLevel: "silent",
+                  forceLogin: true,
+                });
+              } catch (_) {}
+
+              try {
+                const refreshed = typeof api.getAppState === "function" ? api.getAppState() : null;
+                if (Array.isArray(refreshed) && refreshed.length) {
+                  fs.writeFileSync(path.join(ROOT, "cookies.json"), JSON.stringify(refreshed, null, 2), "utf8");
+                  try { fs.writeFileSync(path.join(ROOT, "artifacts", "api-server", "cookies.json"), JSON.stringify(refreshed, null, 2), "utf8"); } catch (_) {}
+                }
+              } catch (_) {}
+
+              const listen = api.listenMqtt || api.listen;
+              if (typeof listen === "function") {
+                listen.call(api, (listenErr, message) => {
+                  if (seq !== _loginSeq) return;
+                  if (listenErr) {
+                    const lmsg = listenErr?.error || listenErr?.message || listenErr;
+                    console.error("⚠️ [DOSK BOT] Listen error:", lmsg);
+                    // Don't immediately kill on transient errors; mark disconnected only for fatal-looking ones
+                    const fatal = typeof lmsg === "string" && /(not logged in|logged out|invalid appstate|login|checkpoint|session)/i.test(lmsg);
+                    if (fatal) {
+                      stopCurrentApi();
+                      global.DoskBot.status = "error";
+                      global.DoskBot.lastError = String(lmsg);
+                      emitBotStatus();
+                      setTimeout(() => {
+                        if (seq === _loginSeq && global.DoskBot.status !== "connected") {
+                          console.log("♻️ [DOSK BOT] محاولة إعادة الاتصال بعد خطأ جلسة...");
+                          startBot({ force: true }).catch(() => {});
+                        }
+                      }, 15000);
+                    }
+                    return;
+                  }
+                  if (!message) return;
+                  try { _bufferMsg(message); } catch (_) {}
+
+                  // Handle group name protection
+                  if (message.type === "event" && message.logMessageType === "log:thread-name") {
+                    try {
+                      const nmCmd = require("./src/commands/nm");
+                      nmCmd.onEvent?.({ api, event: message });
+                    } catch (_) {}
+                  }
+                });
+              }
+
+              emitBotStatus();
+              finish({ ok: true, userID: global.DoskBot.userID });
+            } catch (e) {
+              stopCurrentApi();
+              global.DoskBot.status = "error";
+              global.DoskBot.lastError = e?.message || String(e);
+              emitBotStatus();
+              finish({ ok: false, error: global.DoskBot.lastError });
+            }
+          }
+        );
+      } catch (e) {
+        clearTimeout(timer);
+        stopCurrentApi();
+        global.DoskBot.status = "error";
+        global.DoskBot.lastError = e?.message || String(e);
+        emitBotStatus();
+        finish({ ok: false, error: global.DoskBot.lastError });
+      }
+    });
+  })();
+
+  const p = _loginPromise;
+  p.finally(() => {
+    if (_loginPromise === p) _loginPromise = null;
+  });
+  return p;
 }
 
 global.startBot = startBot;
 global.DoskBot.startBot = startBot;
-global.DoskBot.reloadCookies = (newCookies) => {
-  const p = path.join(ROOT, "cookies.json");
-  fs.writeFileSync(p, JSON.stringify(newCookies, null, 2), "utf8");
-  startBot();
+global.DoskBot.reloadCookies = async (newCookies) => {
+  const cookies = Array.isArray(newCookies) ? newCookies : loadCookies();
+  if (Array.isArray(newCookies) && newCookies.length) {
+    const p = path.join(ROOT, "cookies.json");
+    fs.writeFileSync(p, JSON.stringify(newCookies, null, 2), "utf8");
+    try { fs.writeFileSync(path.join(ROOT, "artifacts", "api-server", "cookies.json"), JSON.stringify(newCookies, null, 2), "utf8"); } catch (_) {}
+  }
+  return await startBot({ cookies, force: true });
 };
+global.DoskBot.getStatus = () => ({
+  status: global.DoskBot.status,
+  online: global.DoskBot.status === "connected" && !!global.DoskBot.api,
+  userID: global.DoskBot.userID,
+  error: global.DoskBot.lastError,
+  botName: global.DoskBot?.config?.botName || "DOSK",
+});
 
 async function main() {
   console.log("🌑 Starting DOSK BOT System...");

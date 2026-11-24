@@ -29,6 +29,22 @@ let _server = null;
 let _logBuf = [];
 const MAX_LOG_BUF = 500;
 
+function emitBotStatus(payload = {}) {
+  const status = payload.status || global.DoskBot?.status || (global.DoskBot?.api ? "connected" : "disconnected");
+  const body = {
+    status,
+    online: status === "connected",
+    uid: payload.uid ?? global.DoskBot?.userID ?? global.DoskBot?.botID ?? null,
+    botName: payload.botName ?? global.DoskBot?.config?.botName ?? "DOSK",
+    error: payload.error ?? global.DoskBot?.lastError ?? null,
+    ts: Date.now(),
+    ...payload,
+  };
+  try { if (_io) _io.emit("bot-status", body); } catch (_) {}
+  return body;
+}
+global._emitBotStatus = emitBotStatus;
+
 const stats = {
   totalMessages: 0,
   totalCommands: 0,
@@ -45,7 +61,7 @@ function _addBotMsg(threadID, body, attachments) {
   if (!tid) return;
   if (!_threadMsgs.has(tid)) _threadMsgs.set(tid, []);
   const msgs = _threadMsgs.get(tid);
-  const botID = String(global.DoskBot?.botID || global.GoatBot?.botID || "bot");
+  const botID = String(global.DoskBot?.userID || global.DoskBot?.botID || global.GoatBot?.botID || "bot");
   const msgObj = {
     messageID: null,
     body: body || "",
@@ -190,7 +206,8 @@ function getStats() {
   const mem = process.memoryUsage();
   const cmds = getRegisteredCommandsList();
   const api = global.DoskBot?.api || global.GoatBot?.fcaApi;
-  const botID = global.DoskBot?.userID || global.GoatBot?.botID || null;
+  const botID = global.DoskBot?.userID || global.DoskBot?.botID || global.GoatBot?.botID || null;
+  const status = global.DoskBot?.status || (api ? "connected" : "disconnected");
   return {
     uptime: upMs,
     totalMessages: stats.totalMessages,
@@ -203,7 +220,9 @@ function getStats() {
     memMB: +(mem.heapUsed / 1048576).toFixed(1),
     prefix: global.DoskBot?.config?.prefix || "/",
     protection: 1,
-    online: !!api,
+    online: status === "connected" && !!api,
+    status,
+    error: global.DoskBot?.lastError || null,
   };
 }
 
@@ -500,10 +519,13 @@ function setupDashboardRoutes(app) {
   app.get("/api/stats", auth, (_, res) => res.json(getStats()));
   app.get("/api/status", auth, (_, res) => {
     const api = global.DoskBot?.api || global.GoatBot?.fcaApi;
-    const botID = global.DoskBot?.userID || global.GoatBot?.botID || null;
+    const botID = global.DoskBot?.userID || global.DoskBot?.botID || global.GoatBot?.botID || null;
+    const status = global.DoskBot?.status || (api ? "connected" : "disconnected");
     res.json({
       ok: true,
-      online: !!api,
+      online: status === "connected" && !!api,
+      status,
+      error: global.DoskBot?.lastError || null,
       botID,
       botName: global.DoskBot?.config?.botName || "DOSK"
     });
@@ -539,7 +561,7 @@ function setupDashboardRoutes(app) {
   });
 
   // Cookies
-  app.post("/api/cookies", auth, (req, res) => {
+  app.post("/api/cookies", auth, async (req, res) => {
     const raw = req.body?.cookies;
     if (!raw) return res.json({ ok: false, error: "لا توجد بيانات كوكيز" });
     try {
@@ -580,22 +602,64 @@ function setupDashboardRoutes(app) {
       ];
       for (const cp of cookieCandidates) {
         try {
+          fs.mkdirSync(path.dirname(cp), { recursive: true });
           fs.writeFileSync(cp, JSON.stringify(parsed, null, 2), "utf8");
         } catch (_) {}
       }
 
       // Hot reload in bot if available
+      let reloadResult = null;
       try {
         if (typeof global.DoskBot?.reloadCookies === "function") {
-          global.DoskBot.reloadCookies(parsed);
+          reloadResult = await global.DoskBot.reloadCookies(parsed);
         } else if (typeof global.startBot === "function") {
-          global.startBot();
+          reloadResult = await global.startBot({ cookies: parsed, force: true });
+        } else if (typeof global.__doskReloadCookies === "function") {
+          reloadResult = await global.__doskReloadCookies(parsed);
+        } else {
+          reloadResult = { ok: false, error: "لا توجد دالة إعادة اتصال متاحة" };
         }
-      } catch (_) {}
+      } catch (e) {
+        reloadResult = { ok: false, error: e?.message || String(e) };
+      }
 
-      res.json({ ok: true, count: parsed.length });
+      // Some runtimes start login asynchronously; poll briefly for actual outcome.
+      const deadline = Date.now() + 25000;
+      while (Date.now() < deadline) {
+        const st = global.DoskBot?.status || (global.DoskBot?.api ? "connected" : "disconnected");
+        const on = st === "connected" && !!(global.DoskBot?.api || global.GoatBot?.fcaApi);
+        if (on) break;
+        if (st === "error" && global.DoskBot?.lastError) break;
+        if (st !== "connecting" && reloadResult && reloadResult.ok === false) break;
+        await new Promise(r => setTimeout(r, 1000));
+      }
+
+      const status = global.DoskBot?.status || (global.DoskBot?.api ? "connected" : "disconnected");
+      const online = status === "connected" && !!(global.DoskBot?.api || global.GoatBot?.fcaApi);
+      const stillConnecting = status === "connecting" && !online;
+      const error = reloadResult?.error || global.DoskBot?.lastError || (online || stillConnecting ? null : "فشل الاتصال بالكوكيز");
+      const ok = reloadResult?.ok === true || online;
+
+      if (!stillConnecting) {
+        emitBotStatus({ status: ok ? "connected" : "error", error: ok ? null : error });
+      }
+
+      return res.json({
+        ok: ok || stillConnecting,
+        connecting: stillConnecting,
+        count: parsed.length,
+        online,
+        status: ok ? "connected" : status,
+        userID: global.DoskBot?.userID || global.DoskBot?.botID || null,
+        error: ok || stillConnecting ? null : error,
+        message: ok
+          ? "تم حفظ الكوكيز والاتصال بنجاح"
+          : stillConnecting
+            ? "تم حفظ الكوكيز وجاري محاولة الاتصال..."
+            : (error || "تم حفظ الكوكيز لكن فشل الاتصال"),
+      });
     } catch (e) {
-      res.json({ ok: false, error: e.message });
+      return res.json({ ok: false, error: e.message });
     }
   });
 
@@ -636,11 +700,12 @@ function setupDashboardRoutes(app) {
   app.post("/api/control", auth, (req, res) => {
     const { action } = req.body || {};
     if (action === "restart") {
-      res.json({ ok: true });
-      setTimeout(() => {
+      res.json({ ok: true, message: "جاري إعادة تشغيل البوت..." });
+      setTimeout(async () => {
         try {
-          if (typeof global.startBot === "function") global.startBot();
-          else if (typeof global.DoskBot?.startBot === "function") global.DoskBot.startBot();
+          if (typeof global.DoskBot?.reloadCookies === "function") await global.DoskBot.reloadCookies();
+          else if (typeof global.DoskBot?.startBot === "function") await global.DoskBot.startBot({ force: true });
+          else if (typeof global.startBot === "function") await global.startBot({ force: true });
         } catch (_) {}
       }, 500);
     } else if (action === "stop") {
@@ -1669,9 +1734,11 @@ function startDashboard(port = 5000) {
       }
       socket.emit("stats-update", getStats());
       socket.emit("bot-status", {
-        status: global.DoskBot?.api ? "online" : "offline",
+        status: global.DoskBot?.status || (global.DoskBot?.api ? "connected" : "disconnected"),
+        online: (global.DoskBot?.status || (global.DoskBot?.api ? "connected" : "disconnected")) === "connected",
         uid: global.DoskBot?.userID || null,
         botName: global.DoskBot?.config?.botName || "DOSK",
+        error: global.DoskBot?.lastError || null,
       });
       socket.emit("log-history", _logBuf.slice(-100));
       socket.on("ping-bot", () => socket.emit("pong-bot", { ts: Date.now() }));
@@ -1713,9 +1780,11 @@ module.exports = {
         }
         socket.emit("stats-update", getStats());
         socket.emit("bot-status", {
-          status: global.DoskBot?.api ? "online" : "offline",
+          status: global.DoskBot?.status || (global.DoskBot?.api ? "connected" : "disconnected"),
+          online: (global.DoskBot?.status || (global.DoskBot?.api ? "connected" : "disconnected")) === "connected",
           uid: global.DoskBot?.userID || null,
           botName: global.DoskBot?.config?.botName || "DOSK",
+          error: global.DoskBot?.lastError || null,
         });
         socket.emit("log-history", _logBuf.slice(-100));
         socket.on("ping-bot", () => socket.emit("pong-bot", { ts: Date.now() }));

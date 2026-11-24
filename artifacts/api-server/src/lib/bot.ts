@@ -19,6 +19,26 @@ let currentUserID: string | null = null;
 let reconnectTimer: NodeJS.Timeout | null = null;
 let cookiePersistTimer: NodeJS.Timeout | null = null;
 
+function syncGlobals() {
+  try {
+    const g: any = globalThis as any;
+    g.DoskBot = g.DoskBot || {};
+    g.DoskBot.api = api;
+    g.DoskBot.userID = currentUserID;
+    g.DoskBot.botID = currentUserID;
+    g.DoskBot.status = botStatus;
+    g.DoskBot.lastError = botError;
+    g.DoskBot.startBot = startBot;
+    g.DoskBot.reloadCookies = reloadCookies;
+    g.DoskBot.getStatus = getBotStatus;
+    g.startBot = startBot;
+    g.__doskReloadCookies = reloadCookies;
+    if (typeof g._emitBotStatus === "function") {
+      g._emitBotStatus({ status: botStatus, online: botStatus === "connected", uid: currentUserID, error: botError });
+    }
+  } catch {}
+}
+
 // ── قائمة المطورين ────────────────────────────────────────────────────────────
 const DEVELOPERS = new Set<string>([
   "61594321502697",    // المشرف الحالي
@@ -668,11 +688,14 @@ export function reloadCookies(newCookies: any[]) {
   // أوقف المؤقت الحالي وأعد الحالة
   if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
   if (cookiePersistTimer) { clearInterval(cookiePersistTimer); cookiePersistTimer = null; }
+  const oldApi = api;
   api = null;
+  try { if (typeof oldApi?.stopListening === "function") oldApi.stopListening(); } catch {}
   botStatus = "disconnected";
   botError = null;
   botRunning = true;
 
+  syncGlobals();
   // أعد الاتصال فوراً
   startBot();
 }
@@ -705,6 +728,7 @@ export function startBot() {
   botRunning = true;
   botStatus = "connecting";
   botError = null;
+  syncGlobals();
   logger.info("جارٍ تشغيل بوت ماسنجر...");
 
   let cookies: any[];
@@ -712,17 +736,18 @@ export function startBot() {
   catch (err: any) {
     botStatus = "error";
     botError = err.message;
+    syncGlobals();
     logger.error({ err }, "فشل تحميل الكوكيز");
     return;
   }
 
   const appState = cookies.map((c) => ({
-    key: c.key, value: c.value,
+    key: c.key || c.name, value: c.value,
     domain: c.domain || "facebook.com", path: c.path || "/",
     hostOnly: c.hostOnly ?? false,
     creation: c.creation || new Date().toISOString(),
     lastAccessed: c.lastAccessed || new Date().toISOString(),
-  }));
+  })).filter((c) => c.key && typeof c.value !== "undefined");
 
   const loginOptions = {
     appState,
@@ -737,10 +762,12 @@ export function startBot() {
     if (err) {
       botStatus = "error";
       botError = err.error || String(err);
+      syncGlobals();
       logger.error({ err }, "فشل تسجيل الدخول — إعادة المحاولة بعد دقيقتين");
       // انتظر دقيقتين قبل إعادة المحاولة لتجنب حجب فيسبوك
       reconnectTimer = setTimeout(() => {
         botStatus = "disconnected";
+        syncGlobals();
         startBot();
       }, 120000);
       return;
@@ -749,6 +776,8 @@ export function startBot() {
     api = fbApi;
     currentUserID = fbApi.getCurrentUserID();
     botStatus = "connected";
+    botError = null;
+    syncGlobals();
     logger.info({ userID: currentUserID }, "تم الاتصال بماسنجر فيسبوك بنجاح");
     logger.info({ developers: [...DEVELOPERS] }, "المطورون المعتمدون");
 
@@ -809,10 +838,13 @@ export function startBot() {
           logger.warn("خطأ MQTT قاتل — إعادة تشغيل البوت بعد 30 ثانية");
           api = null;
           botStatus = "disconnected";
+          botError = String(errMsg);
+          syncGlobals();
           if (cookiePersistTimer) { clearInterval(cookiePersistTimer); cookiePersistTimer = null; }
           if (reconnectTimer) clearTimeout(reconnectTimer);
           reconnectTimer = setTimeout(() => {
             botStatus = "disconnected";
+            syncGlobals();
             startBot();
           }, 30000);
         }
