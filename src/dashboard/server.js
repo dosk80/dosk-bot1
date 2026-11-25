@@ -590,6 +590,11 @@ function setupDashboardRoutes(app) {
       }
 
       if (!parsed.length) return res.json({ ok: false, error: "صيغة الكوكيز غير معروفة" });
+      parsed = parsed.map(c => {
+        if (!c || typeof c !== "object") return c;
+        const key = c.key || c.name;
+        return key ? { ...c, key, name: c.name || key } : c;
+      });
       const hasCUser = parsed.some(c => (c.key === "c_user" || c.name === "c_user") && c.value);
       const hasXs = parsed.some(c => (c.key === "xs" || c.name === "xs") && c.value);
       if (!hasCUser || !hasXs) {

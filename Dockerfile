@@ -25,7 +25,8 @@ COPY package*.json ./
 
 # Install production dependencies cleanly
 RUN npm install --omit=dev --legacy-peer-deps --no-audit --no-fund \
-    && (node -e "require.resolve('ws3-fca')" || (npm install --omit=dev --legacy-peer-deps --no-audit --no-fund ws3-fca@3.5.2 && node -e "require.resolve('ws3-fca')"))
+    && npm install --omit=dev --legacy-peer-deps --no-audit --no-fund tough-cookie@4.1.4 ws3-fca@3.5.2 \
+    && node -e "require.resolve('ws3-fca'); require.resolve('tough-cookie')"
 
 # Copy full application source code
 COPY . .

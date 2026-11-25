@@ -151,13 +151,13 @@ function startBot(options = {}) {
       let installError = null;
       try {
         const { execSync } = require("child_process");
-        execSync("npm install --omit=dev --legacy-peer-deps --no-audit --no-fund ws3-fca@3.5.2", {
+        execSync("npm install --omit=dev --legacy-peer-deps --no-audit --no-fund tough-cookie@4.1.4 ws3-fca@3.5.2", {
           cwd: ROOT,
           stdio: "pipe",
           timeout: 180000,
         });
-        Object.keys(require.cache).forEach(k => { if (k.includes("ws3-fca")) delete require.cache[k]; });
-        try { Object.keys(require('module')._pathCache || {}).forEach(k => { if (k.includes('ws3-fca')) delete require('module')._pathCache[k]; }); } catch (_) {}
+        Object.keys(require.cache).forEach(k => { if (k.includes("ws3-fca") || k.includes("tough-cookie") || k.includes("axios-cookiejar-support") || k.includes("http-cookie-agent")) delete require.cache[k]; });
+        try { const mc = require('module')._pathCache || {}; Object.keys(mc).forEach(k => { if (k.includes('ws3-fca') || k.includes('tough-cookie')) delete mc[k]; }); } catch (_) {}
       } catch (e) {
         installError = (e?.stderr?.toString?.() || e?.stdout?.toString?.() || e?.message || String(e)).slice(0, 500);
         console.error("❌ [DOSK BOT] Runtime FCA install failed:", installError);
